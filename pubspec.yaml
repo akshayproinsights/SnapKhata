@@ -1,0 +1,78 @@
+name: snap_khata
+description: "SnapKhata — AI-powered digital khata book for Indian SMBs."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Navigation
+  cupertino_icons: ^1.0.6
+  go_router: ^13.2.0
+
+  # State Management
+  flutter_riverpod: ^2.5.0
+
+  # Backend — Supabase (auth + DB + storage + realtime sync)
+  supabase_flutter: ^2.3.0
+
+  # Local SQLite via Drift (offline-first local DB)
+  # NOTE: powersync_core requires Dart >=3.4 — using Supabase Realtime
+  # for sync until Flutter is upgraded to 3.22+.
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.23
+  sqlite3: ^2.4.0
+
+  # AI OCR — Gemini Flash
+  google_generative_ai: ^0.4.7
+
+  # Camera & Image processing
+  camera: ^0.10.5+9
+  flutter_image_compress: ^2.1.0
+
+  # Environment variables (keep API keys out of source code)
+  flutter_dotenv: ^5.1.0
+
+  # WhatsApp deep links
+  url_launcher: ^6.2.0
+
+  # PDF generation & sharing (Phase 5)
+  pdf: ^3.10.8
+  printing: ^5.12.0
+  share_plus: ^9.0.0
+
+  # Gallery photo picker
+  image_picker: ^1.0.7
+
+  # File system utilities
+  path_provider: ^2.1.0
+  path: ^1.9.0
+  http: ^1.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # Drift code generation
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+
+# Fix: postgrest 2.x has a DDC compiler bug (NeverType%) that crashes flutter run -d chrome.
+# PostgrestRpcBuilder extends RawPostgrestBuilder without explicit type args → DDC infers Never.
+# Solution: local patched copy in packages/postgrest/ with explicit <dynamic, dynamic, dynamic>.
+# See: packages/postgrest/lib/src/postgrest_rpc_builder.dart
+dependency_overrides:
+  postgrest:
+    path: packages/postgrest
