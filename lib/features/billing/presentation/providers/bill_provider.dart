@@ -91,3 +91,39 @@ class SaveBillNotifier extends AutoDisposeNotifier<SaveBillState> {
 final saveBillProvider =
     AutoDisposeNotifierProvider<SaveBillNotifier, SaveBillState>(
         SaveBillNotifier.new);
+
+// ─────────────────────────────────────────────────
+// Save manual bill notifier (no image)
+// ─────────────────────────────────────────────────
+
+class SaveManualBillNotifier extends AutoDisposeNotifier<SaveBillState> {
+  @override
+  SaveBillState build() => const SaveBillState();
+
+  Future<int?> save({required ScannedBill scannedBill}) async {
+    state = const SaveBillState(status: SaveStatus.loading);
+    try {
+      final result = await ref.read(billRepositoryProvider).saveManualBill(
+            scannedBill: scannedBill,
+          );
+
+      state = SaveBillState(
+        status: SaveStatus.success,
+        savedBillId: result.billId,
+        isSynced: result.isSynced,
+        syncError: result.syncError,
+      );
+      return result.billId;
+    } catch (e) {
+      state = SaveBillState(
+        status: SaveStatus.error,
+        errorMessage: 'Could not save bill: $e',
+      );
+      return null;
+    }
+  }
+}
+
+final saveManualBillProvider =
+    AutoDisposeNotifierProvider<SaveManualBillNotifier, SaveBillState>(
+        SaveManualBillNotifier.new);

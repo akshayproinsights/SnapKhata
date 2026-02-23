@@ -59,7 +59,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   Future<void> _pickGallery() async {
     if (_isProcessing) return;
     final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 90);
+        .pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked == null) return;
     await _process(File(picked.path));
   }
@@ -69,7 +69,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     try {
       // Start OCR and a minimum delay for the loading sequence animation
       final ocrTask = OcrService.extractBill(imageFile);
-      // Increased delay to 6s for a more premium, "earned" feel as we cycle through 5 steps
+      // Increased delay to 6s for a more premium, "earned" feel as we cycle through 6 steps
       final minDelay = Future.delayed(const Duration(milliseconds: 6000));
 
       final results = await Future.wait([ocrTask, minDelay]);
@@ -178,113 +178,180 @@ class _LoadingOverlay extends StatefulWidget {
   State<_LoadingOverlay> createState() => _LoadingOverlayState();
 }
 
-class _LoadingOverlayState extends State<_LoadingOverlay> {
+class _LoadingOverlayState extends State<_LoadingOverlay>
+    with SingleTickerProviderStateMixin {
   static const _steps = [
-    (title: 'Analyzing Bill', sub: '📄 Getting everything ready...'),
-    (title: 'Organizing Items', sub: '🛍️ Listing down your items...'),
-    (title: 'Picking Prices', sub: '💰 Matching prices correctly...'),
-    (title: 'Finalizing Totals', sub: '🧮 Almost done calculation...'),
-    (title: 'Creating Invoice', sub: '✨ Preparing your smart bill!'),
+    (title: 'Reading Customer Name', sub: '📋 Identifying customer details...'),
+    (title: 'Scanning Items', sub: '🛍️ Picking up each item on the bill...'),
+    (title: 'Matching Prices', sub: '💰 Verifying rates & quantities...'),
+    (title: 'Calculating Totals', sub: '🧮 Adding up discounts...'),
+    (title: 'Checking Payment', sub: '💳 Detecting paid / unpaid status...'),
+    (title: 'Creating Invoice', sub: '✨ Preparing your smart order!'),
   ];
 
   int _index = 0;
-  late final _timer =
-      Stream.periodic(const Duration(milliseconds: 1200)).listen((_) {
-    if (mounted) {
-      setState(() {
-        if (_index < _steps.length - 1) {
-          _index++;
-        }
-      });
-    }
-  });
+  late final AnimationController _progressController;
+  late final dynamic _stepSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 6000),
+    )..forward();
+
+    _stepSub =
+        Stream.periodic(const Duration(milliseconds: 1100)).listen((_) {
+      if (mounted) {
+        setState(() {
+          if (_index < _steps.length - 1) {
+            _index++;
+          }
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _stepSub.cancel();
+    _progressController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final current = _steps[_index];
+    final progress = (_index + 1) / _steps.length;
 
     return Container(
       color: Colors.black.withOpacity(0.7),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Premium Progress Indicator with Glow
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0066FF).withOpacity(0.3),
-                      blurRadius: 30,
-                      spreadRadius: 10,
+        child: Column(
+          children: [
+            const Spacer(flex: 3),
+            // Premium Progress Indicator with Glow
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0066FF).withOpacity(0.3),
+                    blurRadius: 30,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+              child: const SizedBox(
+                width: 64,
+                height: 64,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF0066FF),
+                  strokeWidth: 5,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Title transition
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              child: Text(
+                current.title,
+                key: ValueKey('title_$_index'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Subtitle transition
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.1),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                current.sub,
+                key: ValueKey('sub_$_index'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ),
+            const Spacer(flex: 2),
+            // ── Step counter ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Step ${_index + 1} of ${_steps.length}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
-                child: const SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF0066FF),
-                    strokeWidth: 5,
-                    strokeCap: StrokeCap.round,
                   ),
-                ),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 48),
-              // Title transition
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                child: Text(
-                  current.title,
-                  key: ValueKey('title_$_index'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
+            ),
+            const SizedBox(height: 8),
+            // ── Smooth progress bar ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: AnimatedBuilder(
+                animation: _progressController,
+                builder: (_, __) {
+                  // Blend step-based progress with time-based for smoothness
+                  final timeProgress = _progressController.value;
+                  final stepProgress = progress;
+                  final blended = (timeProgress * 0.4 + stepProgress * 0.6)
+                      .clamp(0.0, 1.0);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: blended,
+                      minHeight: 6,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF0066FF),
+                      ),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 12),
-              // Subtitle transition
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.1),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                    )),
-                    child: child,
-                  ),
-                ),
-                child: Text(
-                  current.sub,
-                  key: ValueKey('sub_$_index'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 48),
+          ],
         ),
       ),
     );

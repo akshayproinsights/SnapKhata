@@ -123,9 +123,9 @@ class OcrService {
       final XFile? result = await FlutterImageCompress.compressAndGetFile(
         filePath,
         outPath,
-        quality: 85,
-        minWidth: 1600,
-        minHeight: 1600,
+        quality: 70,
+        minWidth: 1200,
+        minHeight: 1200,
       );
 
       if (result == null) {

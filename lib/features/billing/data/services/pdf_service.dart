@@ -54,6 +54,23 @@ class PdfService {
       creator: 'SnapKhata',
     );
 
+    // Load Devanagari fonts for Hindi/Marathi support
+    final fontRegular = await PdfGoogleFonts.notoSansDevanagariRegular();
+    final fontBold = await PdfGoogleFonts.notoSansDevanagariBold();
+
+    final pageTheme = pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+      theme: pw.ThemeData.withFont(
+        base: fontRegular,
+        bold: fontBold,
+      ),
+      buildBackground: (ctx) => pw.FullPage(
+        ignoreMargins: true,
+        child: pw.Container(color: _bgPage),
+      ),
+    );
+
     pw.ImageProvider? logoImage;
     if (shop?.logoPath != null) {
       try {
@@ -76,14 +93,7 @@ class PdfService {
     final itemChunks = rawChunks.isEmpty ? <List<BillItem>>[[]] : rawChunks;
     final totalPages = itemChunks.length;
 
-    final pageTheme = pw.PageTheme(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 36),
-      buildBackground: (ctx) => pw.FullPage(
-        ignoreMargins: true,
-        child: pw.Container(color: _bgPage),
-      ),
-    );
+    // pageTheme already defined above with Devanagari fonts
 
     for (var pageIndex = 0; pageIndex < totalPages; pageIndex++) {
       final isFirst = pageIndex == 0;
@@ -623,10 +633,6 @@ class PdfService {
     );
   }
 
-  static pw.Widget _buildItemsTable(ScannedBill bill) {
-    return _buildItemsTableSlice(bill, bill.items, 0);
-  }
-
   static pw.Widget _tableCell(
     String text, {
     bool isBold = false,
@@ -884,7 +890,8 @@ class PdfService {
     final pages = Printing.raster(pdfBytes, dpi: 300);
 
     final dir = await getTemporaryDirectory();
-    final baseName = pdfFile.path.split(RegExp(r'[/\\]')).last.replaceAll('.pdf', '');
+    final baseName =
+        pdfFile.path.split(RegExp(r'[/\\]')).last.replaceAll('.pdf', '');
 
     final files = <File>[];
     var pageNum = 1;

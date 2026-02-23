@@ -4,13 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/billing/data/models/scanned_bill.dart';
 import '../../features/billing/presentation/screens/bill_review_screen.dart';
 import '../../features/billing/presentation/screens/bill_summary_screen.dart';
+import '../../features/billing/presentation/screens/order_detail_screen.dart';
+import '../../features/billing/data/models/scanned_bill.dart' show ScannedBill;
+import '../database/app_database.dart';
 import '../../features/billing/presentation/screens/scan_screen.dart';
 import '../../features/billing/presentation/screens/shop_profile_screen.dart';
 import '../../features/customers/presentation/screens/customer_detail_screen.dart';
 import '../../features/customers/presentation/screens/customers_screen.dart';
+import '../../features/billing/presentation/screens/manual_bill_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 
 /// Route path constants.
@@ -24,6 +27,8 @@ class AppRoutes {
   static const String shopProfile = '/shop-profile';
   static const String customers = '/customers';
   static const String customerDetail = '/customer-detail';
+  static const String orderDetail = '/order-detail';
+  static const String manualBill = '/manual-bill';
 }
 
 /// GoRouter instance with auth-guard redirect.
@@ -82,6 +87,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.customers,
         builder: (context, state) => const CustomersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.orderDetail,
+        builder: (context, state) {
+          final bill = state.extra as Bill;
+          return OrderDetailScreen(bill: bill);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.manualBill,
+        builder: (context, state) => const ManualBillScreen(),
       ),
       GoRoute(
         path: AppRoutes.customerDetail,

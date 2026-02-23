@@ -232,7 +232,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('My Shop Profile'),
+        title: Text(
+          _nameCtrl.text.isNotEmpty ? '${_nameCtrl.text} Profile' : 'Shop Profile',
+        ),
         centerTitle: false,
         elevation: 0,
         actions: [

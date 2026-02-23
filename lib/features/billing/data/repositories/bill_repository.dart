@@ -157,6 +157,122 @@ class BillRepository {
     }
   }
 
+  /// Save a manual bill (no image) locally + sync to Supabase.
+  Future<({int billId, bool isSynced, String? syncError})> saveManualBill({
+    required ScannedBill scannedBill,
+  }) async {
+    // Step 1: Save to local Drift DB (offline-first)
+    final billId = await _db.insertBill(BillsCompanion(
+      customerName: Value(scannedBill.customerName ?? ''),
+      customerPhone: Value(scannedBill.customerPhone),
+      invoiceType: const Value('order_summary'),
+      totalAmount: Value(scannedBill.totalAmount),
+      amountPaid: Value(scannedBill.amountPaid ?? 0.0),
+      amountRemaining:
+          Value(scannedBill.amountRemaining ?? scannedBill.totalAmount),
+      status:
+          Value(scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft'),
+      rawImagePath: const Value(null),
+      isSynced: const Value(false),
+    ));
+
+    // Step 2: Save line items
+    for (final item in scannedBill.items) {
+      await _db.insertBillItem(BillItemsCompanion(
+        billId: Value(billId),
+        name: Value(item.name),
+        quantity: Value(item.quantity),
+        unit: Value(item.unit),
+        unitPrice: Value(item.unitPrice),
+        totalPrice: Value(item.totalPrice),
+      ));
+    }
+
+    // Step 3: Upsert catalog items (self-learning catalog)
+    for (final item in scannedBill.items) {
+      if (item.name.trim().isNotEmpty) {
+        await _db.upsertCatalogItem(CatalogItemsCompanion(
+          name: Value(item.name.trim()),
+          normalizedName: Value(item.name.trim().toLowerCase()),
+          lastPrice: Value(item.unitPrice),
+          unit: Value(item.unit ?? 'pcs'),
+          timesOrdered: const Value(1),
+          lastSeenAt: Value(DateTime.now()),
+        ));
+      }
+    }
+
+    // Step 4: Try to sync to Supabase
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        log('No user session — skipping Supabase sync', tag: 'BillRepository');
+        return (billId: billId, isSynced: false, syncError: 'Not logged in');
+      }
+      final userId = user.id;
+
+      final response = await _supabase
+          .from('bills')
+          .insert({
+            'user_id': userId,
+            'customer_name': scannedBill.customerName,
+            'customer_phone': scannedBill.customerPhone,
+            'invoice_type': 'order_summary',
+            'total_amount': scannedBill.totalAmount,
+            'subtotal': scannedBill.subtotal,
+            'discount': scannedBill.discount,
+            'amount_paid': scannedBill.amountPaid,
+            'amount_remaining': scannedBill.amountRemaining,
+            'payment_status': scannedBill.paymentStatus,
+            'status':
+                scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft',
+            'bill_date': scannedBill.date,
+          })
+          .select('id')
+          .single();
+
+      final supabaseId = response['id'] as String?;
+
+      // Insert line items into Supabase
+      if (supabaseId != null && scannedBill.items.isNotEmpty) {
+        try {
+          final itemRows = scannedBill.items
+              .map((item) => {
+                    'bill_id': supabaseId,
+                    'user_id': userId,
+                    'name': item.name,
+                    'quantity': item.quantity,
+                    'unit': item.unit,
+                    'unit_price': item.unitPrice,
+                    'total_price': item.totalPrice,
+                  })
+              .toList();
+          await _supabase.from('bill_items').insert(itemRows);
+        } catch (e) {
+          log('Manual bill items sync failed: $e', tag: 'BillRepository');
+        }
+      }
+
+      // Update local record as synced
+      final localBill = await (_db.select(_db.bills)
+            ..where((t) => t.id.equals(billId)))
+          .getSingle();
+      await _db.updateBill(localBill.copyWith(
+        isSynced: true,
+        supabaseId: Value(supabaseId),
+      ));
+
+      log('Manual bill synced to Supabase: $supabaseId',
+          tag: 'BillRepository');
+      return (billId: billId, isSynced: true, syncError: null);
+    } catch (e) {
+      final errMsg = e.toString();
+      log('Supabase sync failed for manual bill: $errMsg',
+          tag: 'BillRepository');
+      return (billId: billId, isSynced: false, syncError: errMsg);
+    }
+  }
+
   /// Watch recent bills from local Drift DB.
   Stream<List<Bill>> watchRecentBills({int limit = 5}) =>
       _db.watchRecentBills(limit: limit);
