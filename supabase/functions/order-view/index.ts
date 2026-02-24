@@ -64,7 +64,7 @@ serve(async (req) => {
     // Map to JSON structure expected by frontend
     const responseData = {
       shop: {
-        name: shopProfile?.shop_name || "My Shop",
+        name: shopProfile?.shop_name || "Shop / Business Details",
         address: shopProfile?.shop_address || "",
         phone: shopProfile?.shop_phone || "",
         gst: shopProfile?.shop_gst_number || ""
