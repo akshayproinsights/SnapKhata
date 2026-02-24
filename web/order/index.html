@@ -644,22 +644,26 @@
                 const response = await fetch(`https://yblvrnaexonjpuegemwh.supabase.co/functions/v1/order-view/${orderId}`);
                 if (!response.ok) throw new Error('Network response was not ok');
 
-                const htmlText = await response.text();
+                const contentType = response.headers.get("content-type");
 
-                // Extract the __ORDER_DATA__ json object from the returned HTML using Regex
-                const dataRegex = /window\.__ORDER_DATA__\s*=\s*({[\s\S]*?});/i;
-                const match = htmlText.match(dataRegex);
+                let data = null;
+                if (contentType && contentType.includes("application/json")) {
+                    data = await response.json();
+                } else {
+                    const htmlText = await response.text();
+                    // Fallback to extract the JSON object from the returned HTML using Regex (if edge function is not fully updated yet)
+                    const dataRegex = /window\.__ORDER_DATA__\s*=\s*({[\s\S]*?});/i;
+                    const match = htmlText.match(dataRegex);
 
-                if (!match || match.length < 2) {
-                    // Fallback: If we couldn't parse the JSON, just overwrite the whole DOM with the Edge Function HTML
-                    // This ensures it never breaks for the user.
-                    document.open();
-                    document.write(htmlText);
-                    document.close();
-                    return;
+                    if (!match || match.length < 2) {
+                        document.open();
+                        document.write(htmlText);
+                        document.close();
+                        return;
+                    }
+                    data = JSON.parse(match[1]);
                 }
 
-                const data = JSON.parse(match[1]);
                 renderData(data);
 
             } catch (err) {

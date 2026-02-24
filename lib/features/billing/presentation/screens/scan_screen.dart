@@ -70,7 +70,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // Start OCR and a minimum delay for the loading sequence animation
       final startTime = DateTime.now();
       final ocrResult = await OcrService.extractBill(imageFile);
-      
+
       // Ensure at least 3s of loading animation for smooth UX
       final elapsed = DateTime.now().difference(startTime);
       final minDuration = const Duration(milliseconds: 3000);
@@ -189,7 +189,7 @@ class _LoadingOverlayState extends State<_LoadingOverlay>
     (title: 'Matching Prices', sub: '💰 Verifying rates & quantities...'),
     (title: 'Calculating Totals', sub: '🧮 Adding up discounts...'),
     (title: 'Checking Payment', sub: '💳 Detecting paid / unpaid status...'),
-    (title: 'Order Created', sub: '✨ Preparing your smart order!'),
+    (title: 'Finalizing Order', sub: '✨ Preparing your smart order!'),
   ];
 
   int _index = 0;
@@ -201,10 +201,10 @@ class _LoadingOverlayState extends State<_LoadingOverlay>
     super.initState();
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6000),
+      duration: const Duration(milliseconds: 12000),
     )..forward();
 
-    _stepSub = Stream.periodic(const Duration(milliseconds: 1100)).listen((_) {
+    _stepSub = Stream.periodic(const Duration(milliseconds: 2200)).listen((_) {
       if (mounted) {
         setState(() {
           if (_index < _steps.length - 1) {
