@@ -21,17 +21,14 @@
 
     <style>
         :root {
-            --slate-50: #f8fafc;
+            --bg-page: #f8fafc;
+            --border-color: #000000;
+            --gray-bg: #e5e7eb;
+            --blue-600: #2563eb;
             --slate-200: #e2e8f0;
             --slate-400: #94a3b8;
             --slate-600: #475569;
-            --slate-900: #0f172a;
-            --blue-50: #eff6ff;
-            --blue-600: #2563eb;
-            --green: #16a34a;
-            --orange: #ea580c;
             --red: #dc2626;
-            --bg-page: #f8fafc;
         }
 
         * {
@@ -43,7 +40,7 @@
             margin: 0;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background: var(--bg-page);
-            color: var(--slate-900);
+            color: #000000;
             line-height: 1.5;
         }
 
@@ -89,7 +86,7 @@
             margin-top: 30px;
             font-size: 24px;
             font-weight: 700;
-            color: var(--blue-600);
+            color: #000;
         }
 
         .error-container {
@@ -118,7 +115,7 @@
         }
 
         .btn-retry {
-            background: var(--blue-600);
+            background: #000;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -140,202 +137,79 @@
             min-height: 100vh;
         }
 
-        .mt-4 {
-            margin-top: 20px;
+        .page-title {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: #000;
         }
 
-        /* Row Layouts */
-        .row {
-            display: flex;
-            gap: 20px;
-            align-items: stretch;
-        }
-
-        .flex-3 {
-            flex: 3;
-        }
-
-        /* Header Card */
-        .header-card {
+        .main-box {
             background: #fff;
-            border-radius: 8px;
-            border: 1px solid var(--slate-200);
-            position: relative;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 2px solid var(--border-color);
+            margin-bottom: 24px;
         }
 
-        .header-top-bar {
-            height: 4px;
-            background: var(--blue-600);
-            border-radius: 8px 8px 0 0;
-            width: 100%;
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            right: -1px;
-            width: calc(100% + 2px);
-        }
-
-        .header-content {
-            padding: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        .shop-section {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .shop-name {
             font-size: 24px;
             font-weight: 800;
-            color: var(--slate-900);
-            margin: 0 0 8px 0;
-            line-height: 1.2;
+            margin: 0 0 6px 0;
+            text-transform: uppercase;
         }
 
-        .shop-meta {
-            font-size: 13px;
-            color: var(--slate-600);
-            line-height: 1.4;
-            max-width: 90%;
-            margin-bottom: 12px;
+        .shop-address {
+            font-size: 14px;
+            margin: 0 0 4px 0;
         }
 
-        .shop-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .chip {
-            padding: 4px 8px;
-            background: #f1f5f9;
-            border-radius: 4px;
-            font-size: 11px;
-            color: var(--slate-600);
+        .shop-phone,
+        .shop-gst {
+            font-size: 14px;
+            margin: 0 0 4px 0;
             font-weight: 500;
         }
 
-        .chip.highlight {
-            background: var(--blue-50);
-            color: var(--blue-600);
-            font-weight: 600;
+        .info-row {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
         }
 
-        .invoice-meta-box {
-            width: 220px;
-            background: var(--blue-50);
-            border-radius: 8px;
-            padding: 16px;
-            flex-shrink: 0;
+        .info-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .doc-label {
-            color: var(--blue-600);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1.8px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
+        .info-col:first-child {
+            border-right: 2px solid var(--border-color);
         }
 
-        .meta-field {
-            margin-bottom: 12px;
-        }
-
-        .meta-field:last-child {
-            margin-bottom: 0;
-        }
-
-        .meta-field span {
-            display: block;
-            font-size: 10px;
-            color: var(--slate-400);
-            margin-bottom: 2px;
-        }
-
-        .meta-field strong {
-            display: block;
+        .info-header {
+            background: var(--gray-bg);
+            padding: 8px 12px;
+            font-weight: 700;
             font-size: 14px;
-            color: var(--slate-900);
-            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        /* Section Cards */
-        .section-card {
-            background: #fff;
-            border: 1px solid var(--slate-200);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        .info-content {
+            padding: 10px 12px;
+            font-size: 14px;
+            flex: 1;
         }
 
-        .status-box {
-            width: 220px;
-            flex-shrink: 0;
-        }
-
-        .section-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--slate-400);
-            letter-spacing: 1.4px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-        }
-
-        .customer-name {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--slate-900);
+        .info-content>div {
             margin-bottom: 4px;
         }
 
-        .customer-phone {
-            font-size: 13px;
-            color: var(--slate-600);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-        }
-
-        .status-paid {
-            background: #f0fdf4;
-            color: var(--green);
-            border: 1px solid var(--green);
-        }
-
-        .status-partial {
-            background: #fff7ed;
-            color: var(--orange);
-            border: 1px solid var(--orange);
-        }
-
-        .status-unpaid {
-            background: #fef2f2;
-            color: var(--red);
-            border: 1px solid var(--red);
-        }
-
-        .status-meta {
-            font-size: 12px;
-            color: var(--green);
-            margin-top: 8px;
-            font-weight: 600;
-        }
-
-        /* Items Table */
-        .table-container {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid var(--slate-200);
-            overflow: hidden;
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        .info-content>div:last-child {
+            margin-bottom: 0;
         }
 
         .items-table {
@@ -343,29 +217,32 @@
             border-collapse: collapse;
         }
 
-        .items-table th {
-            background: var(--slate-900);
-            color: #fff;
-            padding: 14px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-            text-align: left;
-        }
-
+        .items-table th,
         .items-table td {
-            padding: 12px 16px;
-            font-size: 13px;
-            color: var(--slate-900);
-            border-bottom: 1px solid var(--slate-200);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            font-size: 14px;
         }
 
-        .items-table tr:nth-child(even) td {
-            background: var(--slate-50);
+        /* Border resets for inner table to fuse with main box */
+        .items-table th:first-child,
+        .items-table td:first-child {
+            border-left: none;
+        }
+
+        .items-table th:last-child,
+        .items-table td:last-child {
+            border-right: none;
         }
 
         .items-table tr:last-child td {
             border-bottom: none;
+        }
+
+        .items-table th {
+            background: var(--gray-bg);
+            font-weight: 700;
+            text-align: left;
         }
 
         .items-table th.center,
@@ -378,72 +255,45 @@
             text-align: right;
         }
 
-        .items-table td.bold {
+        .font-bold {
             font-weight: 700;
         }
 
-        /* Totals */
-        .totals-wrapper {
-            display: flex;
-            justify-content: flex-end;
+        .amount-words-cell {
+            background: var(--gray-bg);
+            vertical-align: top;
+            padding: 10px 12px;
+            border-top: 1px solid var(--border-color);
         }
 
-        .totals-card {
-            width: 320px;
-            background: #fff;
-            border: 1px solid var(--slate-200);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-        }
-
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
+        .amount-words-title {
             font-size: 13px;
-        }
-
-        .totals-row.top-line {
-            border-top: 1px dashed var(--slate-200);
-            margin-top: 8px;
-            padding-top: 16px;
-        }
-
-        .totals-row.grand-total {
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        .totals-row .label {
-            color: var(--slate-600);
-        }
-
-        .totals-row.grand-total .label {
-            color: var(--slate-900);
-        }
-
-        .totals-row .val {
             font-weight: 700;
-            color: var(--slate-900);
+            margin-bottom: 4px;
         }
 
-        .val.green {
-            color: var(--green);
+        .amount-words-text {
+            font-size: 14px;
+            font-weight: 500;
         }
 
-        .val.red {
-            color: var(--red);
+        .terms-box {
+            background: #fff;
+            border: 2px solid var(--border-color);
+            width: 60%;
         }
 
-        /* Footer */
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 12px;
-            color: var(--slate-400);
-            font-style: italic;
+        .terms-header {
+            background: var(--gray-bg);
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .terms-content {
+            padding: 10px 12px;
+            font-size: 14px;
         }
 
         .fab-print {
@@ -460,11 +310,11 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            background: var(--slate-900);
+            background: #000;
             color: #ffffff;
             font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: transform 0.2s;
@@ -474,39 +324,51 @@
             transform: translateY(-2px);
         }
 
-        @media (max-width: 650px) {
-            .row {
-                flex-direction: column;
-                gap: 16px;
-            }
-
-            .invoice-meta-box,
-            .status-box {
-                width: 100%;
-                border-radius: 8px;
-            }
-
-            .header-content {
-                flex-direction: column;
-                gap: 20px;
-                padding: 16px;
+        @media print {
+            body {
+                background: #fff;
             }
 
             .page {
-                padding: 20px 12px;
+                padding: 0;
+                max-width: 100%;
+                min-height: auto;
             }
 
-            .totals-wrapper {
-                justify-content: stretch;
+            .fab-print {
+                display: none;
             }
 
-            .totals-card {
+            .info-header,
+            .items-table th,
+            .amount-words-cell,
+            .terms-header {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .page {
+                padding: 16px 12px;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-col:first-child {
+                border-right: none;
+                border-bottom: 2px solid var(--border-color);
+            }
+
+            .terms-box {
                 width: 100%;
             }
 
             .items-table th,
             .items-table td {
-                padding: 10px 8px;
+                padding: 6px 8px;
                 font-size: 12px;
             }
 
@@ -514,49 +376,13 @@
                 font-size: 20px;
             }
 
-            .customer-name {
-                font-size: 16px;
-            }
-        }
-
-        @media print {
-            body {
-                background: #ffffff;
+            .info-header,
+            .terms-header {
+                font-size: 13px;
             }
 
-            .page {
-                padding: 0;
-                max-width: 100%;
-            }
-
-            .fab-print,
-            .header-top-bar {
-                display: none;
-            }
-
-            .header-card,
-            .section-card,
-            .table-container,
-            .totals-card {
-                box-shadow: none;
-                border: 1px solid #ccc;
-            }
-
-            .invoice-meta-box {
-                background: #f3f4f6;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .items-table th {
-                background: #111;
-                color: #fff;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .status-paid {
-                background: #f0fdf4 !important;
+            .info-content {
+                font-size: 13px;
             }
         }
     </style>
@@ -582,56 +408,44 @@
     <!-- Main Content -->
     <div id="content-container">
         <div class="page">
+            <div class="page-title">Order Summary</div>
 
-            <!-- Header -->
-            <div class="header-card">
-                <div class="header-top-bar"></div>
-                <div class="header-content row">
-                    <div class="shop-info flex-3">
-                        <h1 class="shop-name" id="shopName">My Shop</h1>
-                        <div class="shop-meta" id="shopMeta"></div>
-                        <div class="shop-chips" id="shopChips">
-                            <div class="chip" id="shopPhone" style="display:none"></div>
+            <div class="main-box">
+                <!-- Header -->
+                <div class="shop-section">
+                    <div class="shop-name" id="shopName">My Shop</div>
+                    <div class="shop-address" id="shopMeta"></div>
+                    <div class="shop-phone" id="shopPhone" style="display:none"></div>
+                    <div class="shop-gst" id="shopGst" style="display:none"></div>
+                </div>
+
+                <!-- Order Details & Bill To -->
+                <div class="info-row">
+                    <div class="info-col">
+                        <div class="info-header">Order Details:</div>
+                        <div class="info-content">
+                            <div><strong>No: </strong><strong id="orderId">—</strong></div>
+                            <div><strong>Date: </strong><strong id="orderDate">DD-MM-YYYY</strong></div>
                         </div>
                     </div>
-                    <div class="invoice-meta-box">
-                        <div class="doc-label" id="docLabel">INVOICE</div>
-                        <div class="meta-field">
-                            <span>Invoice No.</span>
-                            <strong id="orderId">—</strong>
-                        </div>
-                        <div class="meta-field">
-                            <span>Date</span>
-                            <strong id="orderDate">DD/MM/YYYY</strong>
+                    <div class="info-col">
+                        <div class="info-header">Bill To:</div>
+                        <div class="info-content">
+                            <div style="font-weight: 700;" id="customerName">Walk-in customer</div>
+                            <div id="customerPhone"></div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Bill To & Payment Status -->
-            <div class="row mt-4">
-                <div class="section-card flex-3">
-                    <div class="section-label">BILL TO</div>
-                    <div class="customer-name" id="customerName">Walk-in customer</div>
-                    <div class="customer-phone" id="customerPhone"></div>
-                </div>
-                <div class="section-card status-box">
-                    <div class="section-label">PAYMENT STATUS</div>
-                    <div id="paymentStatusBadge" class="status-badge status-unpaid">UNPAID</div>
-                    <div id="paymentStatusMeta" class="status-meta" style="display: none;"></div>
-                </div>
-            </div>
-
-            <!-- Items Table -->
-            <div class="table-container mt-4">
+                <!-- Items Table -->
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Item Description</th>
-                            <th class="center">Qty</th>
-                            <th class="right">Rate</th>
-                            <th class="right">Amount</th>
+                            <th style="width: 5%; text-align: center;">#</th>
+                            <th style="width: 45%;">Item Description</th>
+                            <th style="width: 10%; text-align: center;">Qty</th>
+                            <th style="width: 20%; text-align: right;">Rate</th>
+                            <th style="width: 20%; text-align: right;">Amount</th>
                         </tr>
                     </thead>
                     <tbody id="itemsBody">
@@ -640,40 +454,11 @@
                 </table>
             </div>
 
-            <!-- Totals -->
-            <div class="totals-wrapper mt-4">
-                <div class="totals-card">
-                    <div class="totals-row">
-                        <span class="label">Subtotal</span>
-                        <span class="val" id="subtotal">Rs.0</span>
-                    </div>
-                    <div class="totals-row" id="discountRow" style="display:none">
-                        <span class="label">Discount</span>
-                        <span class="val green" id="discount">-Rs.0</span>
-                    </div>
-                    <div class="totals-row" id="gstRow" style="display:none">
-                        <span class="label" id="gstLabel">GST</span>
-                        <span class="val" id="gst">Rs.0</span>
-                    </div>
-                    <div class="totals-row top-line grand-total">
-                        <span class="label">TOTAL</span>
-                        <span class="val" id="total">Rs.0</span>
-                    </div>
-                    <div class="totals-row top-line" id="paidRow" style="display:none">
-                        <span class="label">Amount Paid</span>
-                        <span class="val green" id="paid">Rs.0</span>
-                    </div>
-                    <div class="totals-row top-line" id="balanceRow" style="display:none">
-                        <span class="label">Balance Due</span>
-                        <span class="val red" id="balance" style="font-size: 15px;">Rs.0</span>
-                    </div>
-                </div>
+            <div class="terms-box">
+                <div class="terms-header">Terms And Conditions:</div>
+                <div class="terms-content">Thank you for your business.</div>
             </div>
 
-            <footer class="footer">
-                Continued on next page...<br><br>
-                Generated by <strong>SnapKhata</strong> &nbsp;&bull;&nbsp; Digital Records for Smart Business
-            </footer>
         </div>
 
         <div class="fab-print">
@@ -686,11 +471,33 @@
     <script>
         const fmtMoney = (v) => {
             const num = Number(v || 0);
-            return 'Rs.' + num.toLocaleString('en-IN', {
+            return '₹ ' + num.toLocaleString('en-IN', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
-            });
+            }).replace('₹ ', '₹'); // No space after rupee symbol to match original request if any, but lets stick to standard
         };
+
+        const flexLabel = (text) => {
+            return `<div style="display: flex; justify-content: space-between;"><span>${text}</span><span>:</span></div>`;
+        };
+
+        function numberToWords(num) {
+            if (num === 0) return 'Zero Rupees only';
+            num = Math.floor(Math.abs(num));
+            const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+            if (num.toString().length > 9) return 'Overflow';
+            const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+            if (!n) return;
+            let str = '';
+            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+            str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+            str += (n[5] != 0) ? (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'Rupees only' : 'Rupees only';
+            return str.trim();
+        }
 
         const byId = (id) => document.getElementById(id);
         const hide = (id) => { byId(id).style.display = 'none'; };
@@ -759,8 +566,13 @@
             if (shop.address) byId('shopMeta').textContent = shop.address;
 
             if (shop.phone) {
-                byId('shopPhone').textContent = 'Ph: ' + shop.phone;
+                byId('shopPhone').textContent = '+91 ' + shop.phone.replace('+91', '').trim();
                 show('shopPhone');
+            }
+
+            if (shop.gst) {
+                byId('shopGst').textContent = 'GSTIN: ' + shop.gst;
+                show('shopGst');
             }
 
             // --- Order Info ---
@@ -771,32 +583,13 @@
                 const dd = String(d.getDate()).padStart(2, '0');
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
                 const yyyy = d.getFullYear();
-                byId('orderDate').textContent = `${dd}/${mm}/${yyyy}`;
+                byId('orderDate').textContent = `${dd}-${mm}-${yyyy}`;
             }
 
             // --- Customer ---
             byId('customerName').textContent = customer.name || 'Walk-in Customer';
-            if (customer.phone) byId('customerPhone').textContent = '+91 ' + customer.phone;
-
-            // --- Status Badge ---
-            const status = (order.paymentStatus || '').toLowerCase();
-            const badge = byId('paymentStatusBadge');
-            const statusMeta = byId('paymentStatusMeta');
-
-            badge.className = 'status-badge';
-            if (status === 'paid' || status === 'confirmed') {
-                badge.classList.add('status-paid');
-                badge.textContent = 'PAID';
-            } else if (status === 'partial') {
-                badge.classList.add('status-partial');
-                badge.textContent = 'PARTIAL';
-                if (order.paid > 0) {
-                    statusMeta.textContent = 'Paid: ' + fmtMoney(order.paid);
-                    show('paymentStatusMeta');
-                }
-            } else {
-                badge.classList.add('status-unpaid');
-                badge.textContent = 'UNPAID';
+            if (customer.phone) {
+                byId('customerPhone').textContent = '+91 ' + customer.phone.replace('+91', '').trim();
             }
 
             // --- Items ---
@@ -813,37 +606,74 @@
                   <td>${item.name || ''}</td>
                   <td class="center">${qty}</td>
                   <td class="right">${item.rate > 0 ? fmtMoney(item.rate) : '-'}</td>
-                  <td class="right bold">${fmtMoney(item.amount || 0)}</td>
+                  <td class="right">${fmtMoney(item.amount || 0)}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
             // --- Totals ---
-            byId('subtotal').textContent = fmtMoney(order.subtotal || order.total || 0);
+            // Calculate number of rows dynamically added to the bottom structure
+            // We have Subtotal, and Total as standard top block (2)
+            // Plus possible Discount and GST
+            const orderSubtotal = Number(order.subtotal || order.total || 0);
+            const discountAmt = Number(order.discount || 0);
+            const gstAmt = Number(order.gstAmount || 0);
 
-            if (order.discount && Number(order.discount) > 0) {
-                byId('discount').textContent = `-${fmtMoney(order.discount)}`;
-                showFlex('discountRow');
+            let topTotalCount = 2;
+            if (discountAmt > 0) topTotalCount++;
+            if (gstAmt > 0) topTotalCount++;
+
+            let totalsHtml = `
+                <tr>
+                    <td colspan="3" rowspan="${topTotalCount}" style="border-right: 1px solid #000; border-bottom: 1px solid #000; background: #fff;"></td>
+                    <td>${flexLabel('Sub Total')}</td>
+                    <td class="right font-bold">${fmtMoney(orderSubtotal)}</td>
+                </tr>
+            `;
+
+            if (discountAmt > 0) {
+                totalsHtml += `
+                <tr>
+                    <td>${flexLabel('Discount')}</td>
+                    <td class="right">-${fmtMoney(discountAmt)}</td>
+                </tr>`;
             }
 
-            if (order.gstAmount && Number(order.gstAmount) > 0) {
-                byId('gstLabel').textContent = order.gstPercent ? `GST (${Number(order.gstPercent).toFixed(0)}%)` : 'GST';
-                byId('gst').textContent = fmtMoney(order.gstAmount);
-                showFlex('gstRow');
+            if (gstAmt > 0) {
+                const gstLabel = order.gstPercent ? `GST (${Number(order.gstPercent).toFixed(0)}%)` : 'GST';
+                totalsHtml += `
+                <tr>
+                    <td>${flexLabel(gstLabel)}</td>
+                    <td class="right">${fmtMoney(gstAmt)}</td>
+                </tr>`;
             }
 
-            byId('total').textContent = fmtMoney(order.total || 0);
+            totalsHtml += `
+                <tr>
+                    <td class="font-bold">${flexLabel('Total')}</td>
+                    <td class="right font-bold">${fmtMoney(order.total || 0)}</td>
+                </tr>
+            `;
 
-            if (order.paid && Number(order.paid) > 0) {
-                byId('paid').textContent = fmtMoney(order.paid);
-                showFlex('paidRow');
-            }
+            const amountWords = numberToWords(order.total || 0);
 
-            const balance = Number(order.balance || 0);
-            if (balance > 0) {
-                byId('balance').textContent = fmtMoney(balance);
-                showFlex('balanceRow');
-            }
+            // Amount in words cell + Received & Balance
+            totalsHtml += `
+                <tr>
+                    <td colspan="3" rowspan="2" class="amount-words-cell">
+                        <div class="amount-words-title">Order Amount In Words :</div>
+                        <div class="amount-words-text">${amountWords}</div>
+                    </td>
+                    <td>${flexLabel('Received')}</td>
+                    <td class="right">${fmtMoney(order.paid || 0)}</td>
+                </tr>
+                <tr>
+                    <td>${flexLabel('Balance')}</td>
+                    <td class="right">${fmtMoney(order.balance || 0)}</td>
+                </tr>
+            `;
+
+            tbody.insertAdjacentHTML('beforeend', totalsHtml);
 
             hide('loader');
             show('content-container');

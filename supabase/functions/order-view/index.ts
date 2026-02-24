@@ -16,10 +16,10 @@ serve(async (req) => {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     let orderId = pathParts[pathParts.length - 1]
-    
+
     // Check if query param exists
     if (!orderId || orderId === 'order-view') {
-        orderId = url.searchParams.get('id') || ''
+      orderId = url.searchParams.get('id') || ''
     }
 
     if (!orderId) {
@@ -53,7 +53,7 @@ serve(async (req) => {
       .from('shop_profiles')
       .select('*')
       .eq('user_id', bill.user_id)
-      .single()
+      .maybeSingle()
 
     // 3. Fetch bill items
     const { data: items } = await supabase
@@ -66,7 +66,8 @@ serve(async (req) => {
       shop: {
         name: shopProfile?.shop_name || "My Shop",
         address: shopProfile?.shop_address || "",
-        phone: shopProfile?.shop_phone || ""
+        phone: shopProfile?.shop_phone || "",
+        gst: shopProfile?.shop_gst_number || ""
       },
       order: {
         id: bill.bill_number || orderId.substring(0, 8).toUpperCase(),

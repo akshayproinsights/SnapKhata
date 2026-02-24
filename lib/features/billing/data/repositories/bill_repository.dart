@@ -80,6 +80,24 @@ class BillRepository {
       final email = user.email ?? userId;
       final folderName = email.contains('@') ? email.split('@').first : userId;
 
+      // Ensure shop profile is synced so the HTML view has the shop name
+      try {
+        final profile = await _db.getShopProfile();
+        if (profile != null) {
+          await _supabase.from('shop_profiles').upsert({
+            'user_id': userId,
+            'shop_name': profile.shopName,
+            'shop_address': profile.shopAddress,
+            'shop_phone': profile.shopPhone,
+            'shop_gst_number': profile.shopGstNumber,
+            'shop_email': profile.shopEmail,
+            'updated_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id');
+        }
+      } catch (e) {
+        log('Auto-sync shop profile failed: $e', tag: 'BillRepository');
+      }
+
       // Upload image to Supabase Storage
       final ext = compressed.path.split('.').last;
       final storagePath =
@@ -225,6 +243,24 @@ class BillRepository {
         return (billId: billId, isSynced: false, syncError: 'Not logged in');
       }
       final userId = user.id;
+
+      // Ensure shop profile is synced so the HTML view has the shop name
+      try {
+        final profile = await _db.getShopProfile();
+        if (profile != null) {
+          await _supabase.from('shop_profiles').upsert({
+            'user_id': userId,
+            'shop_name': profile.shopName,
+            'shop_address': profile.shopAddress,
+            'shop_phone': profile.shopPhone,
+            'shop_gst_number': profile.shopGstNumber,
+            'shop_email': profile.shopEmail,
+            'updated_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id');
+        }
+      } catch (e) {
+        log('Auto-sync shop profile failed: $e', tag: 'BillRepository');
+      }
 
       final response = await _supabase
           .from('bills')
