@@ -233,7 +233,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
         title: Text(
-          _nameCtrl.text.isNotEmpty ? '${_nameCtrl.text} Profile' : 'Shop Profile',
+          _nameCtrl.text.isNotEmpty
+              ? '${_nameCtrl.text} Profile'
+              : 'Shop Profile',
         ),
         centerTitle: false,
         elevation: 0,
@@ -315,7 +317,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'This appears on every PDF invoice you send',
+                            'This appears on every PDF Order you send',
                             style: TextStyle(
                                 color: Colors.white.withOpacity(0.75),
                                 fontSize: 12),
@@ -418,7 +420,7 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6, left: 4),
                     child: Text(
-                      'Required for GST invoices. Appears on every PDF.',
+                      'Required for GST Receipts. Appears on every PDF.',
                       style: TextStyle(
                           fontSize: 11,
                           color: theme.colorScheme.onSurface.withOpacity(0.5)),

@@ -59,9 +59,11 @@ You understand English, Hindi (Devanagari script), and Marathi fluently.
 
 Language rule:
 - ALL output field values must be in English.
-- If a name, item, or label is in Hindi or Marathi, translate it to English
+- If the original text is in English, do NOT add any translations or brackets. Keep it as English only.
+- ONLY If a name, item, or label is in Hindi or Marathi (Devanagari script), translate it to English
   AND append the original text in parentheses for the shopkeeper's reference.
-  Example: "Refined Oil (शुद्ध तेल)", "Wheat Flour (गव्हाचे पीठ)"
+  Example (English original): "Refined Oil"
+  Example (Marathi/Hindi original): "Wheat Flour (गव्हाचे पीठ)", "Ramesh (रमेश)"
 
 Date rule:
 - Indian bills always use dd-mm-yyyy, dd-mm-yy, or dd/mm/yy format.
@@ -87,8 +89,9 @@ class OcrService {
     apiKey: AppConstants.geminiApiKey,
     systemInstruction: Content.system(_systemInstruction),
     generationConfig: GenerationConfig(
-      temperature: 0.1,
+      temperature: 0.2,
       responseMimeType: 'application/json',
+      maxOutputTokens: 4096,
     ),
   );
 
@@ -98,8 +101,9 @@ class OcrService {
     apiKey: AppConstants.geminiApiKey,
     systemInstruction: Content.system(_systemInstruction),
     generationConfig: GenerationConfig(
-      temperature: 0.1,
+      temperature: 0.2,
       responseMimeType: 'application/json',
+      maxOutputTokens: 4096,
     ),
   );
 
@@ -123,9 +127,9 @@ class OcrService {
       final XFile? result = await FlutterImageCompress.compressAndGetFile(
         filePath,
         outPath,
-        quality: 70,
-        minWidth: 1200,
-        minHeight: 1200,
+        quality: 60,
+        minWidth: 1000,
+        minHeight: 1000,
       );
 
       if (result == null) {
@@ -152,89 +156,24 @@ class OcrService {
   // ─────────────────────────────────────────────────────────────
 
   static const _billPrompt = '''
-Analyze the provided image of an Indian shop bill / invoice / receipt.
-CRITICAL: Analyze the entire image provided. Do not skip any parts.
-Many bills have items at the very bottom or footer; ensure EVERY single line item is captured.
-AIM FOR 100% ACCURACY. Do not skip or omit any details.
+Extract ALL data from this Indian shop bill/invoice. CRITICAL: Scan entire image including bottom edges. Capture EVERY item without omissions.
 
-Return ONLY valid JSON (no markdown, no explanation) matching this exact schema:
-
+Return ONLY valid JSON:
 {
-  "customer_name": "string or null — translate to English, keep original in brackets e.g. 'Ramesh Kumar (रमेश कुमार)'",
-  "customer_phone": "string or null — digits only, no spaces or dashes",
-  "date": "YYYY-MM-DD or null — Indian bills use dd-mm-yyyy / dd-mm-yy / dd/mm/yy, parse day-first always",
-  "items": [
-    {
-      "name": "English name, original in brackets if non-English e.g. 'Refined Oil (शुद्ध तेल)'",
-      "quantity": "number (default to 1 if not clearly specified)",
-      "unit": "kg / pcs / ltr / gm / dozen / bundle / bag / box or null (Optional)",
-      "unit_price": "number or null (if missing, derive from total_price / quantity)",
-      "total_price": "number"
-    }
-  ],
-  "subtotal": "number or null (sum of total_price if missing)",
-  "discount": "number or null",
-  "gst_amount": "number or null",
-  "gst_percent": "number or null",
-  "total_amount": "number",
-  "amount_paid": "number or null",
-  "amount_remaining": "number or null",
-  "payment_status": "paid | partial | unpaid",
-  "confidence_score": "number (0–100)"
+  "customer_name": "English name; include original in brackets ONLY if non-English e.g. 'Ramesh (रमेश)'",
+  "customer_phone": "10 digits only, strip +91/spaces",
+  "invoice_id": "string or null — extracted Bill number/Invoice ID",
+  "date": "YYYY-MM-DD (parse dd-mm-yyyy day-first)",
+  "items": [{"name": "English name (original in brackets ONLY if non-English)", "quantity": number, "unit": "kg/pcs/ltr/etc", "unit_price": number, "total_price": number}],
+  "subtotal": number, "discount": number, "gst_amount": number, "gst_percent": number,
+  "total_amount": number, "amount_paid": number, "amount_remaining": number,
+  "payment_status": "paid|partial|unpaid",
+  "confidence_score": number
 }
 
-Indian SMB billing terms glossary (recognise any of these):
+Terms: Invoice No (Inv No/Bill No/Bill #/भरणा क्र./बीजक क्र.), Customer (ग्राहक/नाव/Party/M/s), Date (तारीख/Dt), Qty (नग/पीस/Pcs/Nos), Unit (किलो/ग्राम/Kg/Ltr/Dozen/Bundle), Rate (दर/भाव/Price/MRP), Total (एकूण/कुल/Grand Total/Amt), Subtotal (उप-एकूण/Gross), Discount (सवलत/छूट/Disc), Tax (जीएसटी/GST/CGST/SGST), Paid (जमा/Received/Advance), Balance (बाकी/शिल्लक/Due/Credit), Phone (मोबाईल/Mob/Ph/Contact).
 
-  CUSTOMER / NAME
-    ग्राहक, नाव, नाम, खरीदार, Party Name, Customer, Name, M/s
-
-  DATE
-    तारीख, दिनांक, Date, Dt., Dt
-    Format is ALWAYS day-first: dd-mm-yyyy or dd/mm/yy or dd-mm-yy
-
-  QUANTITY / UNIT
-    नग, पीस, किलो, ग्राम, लिटर, डझन, गठ्ठा
-    Pcs, Nos, Kg, Gm, Ltr, Ml, Dozen, Doz, Bundle, Bag, Box, Carton
-
-  RATE / PRICE PER UNIT
-    दर, भाव, Rate, Price, MRP, Per
-
-  AMOUNT / TOTAL
-    एकूण, कुल, रक्कम, Total, Grand Total, Net Amount, Bill Amount, Amt
-
-  SUBTOTAL (before tax/discount)
-    उप-एकूण, Sub Total, Gross Amount
-
-  DISCOUNT
-    सवलत, छूट, Discount, Disc, Rebate
-
-  TAX / GST
-    जीएसटी, कर, GST, CGST, SGST, IGST, Tax, VAT
-
-  AMOUNT PAID (money received today)
-    जमा, भरलेले, आज दिले, Paid, Received, Cash Received, Advance
-
-  BALANCE DUE (remaining to be paid)
-    बाकी, शिल्लक, उधार, Baki, Balance, Due, Remaining, Credit
-
-  CUSTOMER MOBILE / PHONE
-    मोबाईल, फोन, संपर्क, दूरध्वनी, Mob, Mobile, Ph, Phone, Contact, Tel, M.
-    Indian mobile numbers are always 10 digits starting with 6, 7, 8, or 9.
-    Strip any country code (+91, 0) and spaces/dashes before returning.
-    Return digits only (no spaces, no dashes, no +91).
-
-Rules:
-  1. All output values must be in English; non-English text → English (original).
-  2. Dates: parse day-first; output as YYYY-MM-DD.
-  3. Use null (never 0) for fields that are absent or not written on the bill.
-  4. All monetary values must be numbers, not strings.
-  5. If unit_price is missing, compute it as total_price / quantity when possible.
-  6. If subtotal is missing, sum all item total_price values.
-  7. payment_status: "paid" = fully paid, "partial" = partly paid, "unpaid" = nothing paid.
-  8. confidence_score: 100 = every field crystal-clear, 0 = completely unreadable.
-  9. THOROUGH SCAN: Check the bottom edges and unconventional locations for items.
-  10. NO OMISSIONS: If you see a list of items, extract ALL of them without skipping entries.
-  11. 100% ACCURACY: Double check every digit and character extracted.
+Rules: Keep English as is. Translate non-English to English and append original in brackets. Dates day-first. null for missing. Numbers not strings. Derive unit_price if missing. Sum subtotal if missing. 100% accuracy.
 ''';
 
   /// Extract bill data from a filled customer bill image.
@@ -256,44 +195,102 @@ Rules:
     ];
 
     // ── Primary attempt ──
-    log('OCR: processing with primary model (${AppConstants.primaryModel})',
+    log('OCR: starting primary model generation for ${AppConstants.primaryModel}',
         tag: 'OcrService');
-    final primary = await _primaryModel.generateContent(content);
-    final primaryUsage =
-        _parseUsage(primary, AppConstants.primaryModel, isPro: false);
-    log('OCR primary usage: $primaryUsage', tag: 'OcrService');
+    final stopwatch = Stopwatch()..start();
 
-    final primaryJson = _extractJson(primary.text ?? '');
-    final primaryMap = jsonDecode(primaryJson) as Map<String, dynamic>;
-    final confidence =
-        (primaryMap['confidence_score'] as num?)?.toDouble() ?? 0.0;
+    try {
+      final primary = await _primaryModel.generateContent(content);
+      stopwatch.stop();
+      log('OCR: primary model responded in ${stopwatch.elapsed.inSeconds}s',
+          tag: 'OcrService');
 
-    log('OCR primary confidence: $confidence', tag: 'OcrService');
+      final primaryUsage =
+          _parseUsage(primary, AppConstants.primaryModel, isPro: false);
+      log('OCR primary usage: $primaryUsage', tag: 'OcrService');
 
-    // ── Fallback if accuracy too low ──
-    if (confidence < AppConstants.accuracyThreshold) {
-      log(
-        'OCR: confidence $confidence < ${AppConstants.accuracyThreshold}% → '
-        'retrying with fallback model (${AppConstants.fallbackModel})',
-        tag: 'OcrService',
-      );
-      final fallback = await _fallbackModel.generateContent(content);
-      final fallbackUsage =
-          _parseUsage(fallback, AppConstants.fallbackModel, isPro: true);
-      log('OCR fallback usage: $fallbackUsage', tag: 'OcrService');
+      final text = primary.text ?? '';
+      log('OCR raw text length: ${text.length}', tag: 'OcrService');
+      if (text.isEmpty) {
+        log('OCR WARNING: Primary model returned empty text!',
+            tag: 'OcrService');
+      }
 
-      final fallbackJson = _extractJson(fallback.text ?? '');
-      final fallbackMap = jsonDecode(fallbackJson) as Map<String, dynamic>;
+      final primaryJson = _extractJson(text);
+      log('OCR extracted JSON: $primaryJson', tag: 'OcrService');
+
+      // Validate JSON is complete before parsing
+      if (!_isValidJson(primaryJson)) {
+        log('OCR ERROR: Primary model returned incomplete/invalid JSON → using fallback',
+            tag: 'OcrService');
+
+        // Directly use fallback model for incomplete JSON
+        final fallbackStopwatch = Stopwatch()..start();
+        final fallback = await _fallbackModel.generateContent(content);
+        fallbackStopwatch.stop();
+        log('OCR: fallback model responded in ${fallbackStopwatch.elapsed.inSeconds}s',
+            tag: 'OcrService');
+
+        final fallbackUsage =
+            _parseUsage(fallback, AppConstants.fallbackModel, isPro: true);
+        log('OCR fallback usage: $fallbackUsage', tag: 'OcrService');
+
+        final fallbackJson = _extractJson(fallback.text ?? '');
+
+        // Validate fallback JSON as well
+        if (!_isValidJson(fallbackJson)) {
+          log('OCR ERROR: Fallback model also returned incomplete/invalid JSON',
+              tag: 'OcrService');
+          throw FormatException('Both models returned incomplete JSON');
+        }
+
+        final fallbackMap = jsonDecode(fallbackJson) as Map<String, dynamic>;
+        return OcrResult(
+          data: ScannedBill.fromJson(fallbackMap),
+          usage: fallbackUsage,
+        );
+      }
+
+      final primaryMap = jsonDecode(primaryJson) as Map<String, dynamic>;
+      final confidence =
+          (primaryMap['confidence_score'] as num?)?.toDouble() ?? 0.0;
+
+      log('OCR primary confidence: $confidence', tag: 'OcrService');
+
+      // ── Fallback if accuracy too low ──
+      if (confidence < AppConstants.accuracyThreshold) {
+        log(
+          'OCR: confidence $confidence < ${AppConstants.accuracyThreshold} → '
+          'retrying with fallback model (${AppConstants.fallbackModel})',
+          tag: 'OcrService',
+        );
+        final fallbackStopwatch = Stopwatch()..start();
+        final fallback = await _fallbackModel.generateContent(content);
+        fallbackStopwatch.stop();
+        log('OCR: fallback model responded in ${fallbackStopwatch.elapsed.inSeconds}s',
+            tag: 'OcrService');
+
+        final fallbackUsage =
+            _parseUsage(fallback, AppConstants.fallbackModel, isPro: true);
+        log('OCR fallback usage: $fallbackUsage', tag: 'OcrService');
+
+        final fallbackJson = _extractJson(fallback.text ?? '');
+        final fallbackMap = jsonDecode(fallbackJson) as Map<String, dynamic>;
+        return OcrResult(
+          data: ScannedBill.fromJson(fallbackMap),
+          usage: fallbackUsage,
+        );
+      }
+
       return OcrResult(
-        data: ScannedBill.fromJson(fallbackMap),
-        usage: fallbackUsage,
+        data: ScannedBill.fromJson(primaryMap),
+        usage: primaryUsage,
       );
+    } catch (e, stack) {
+      log('OCR CRITICAL ERROR: $e', tag: 'OcrService');
+      log('OCR STACK TRACE: $stack', tag: 'OcrService');
+      rethrow;
     }
-
-    return OcrResult(
-      data: ScannedBill.fromJson(primaryMap),
-      usage: primaryUsage,
-    );
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -402,16 +399,90 @@ Notes:
   }
 
   /// Strips markdown code fences if Gemini wraps the JSON in them.
+  /// Also attempts to fix common JSON formatting issues.
   static String _extractJson(String raw) {
     final trimmed = raw.trim();
-    if (trimmed.startsWith('```')) {
-      final start = trimmed.indexOf('{');
-      final end = trimmed.lastIndexOf('}');
-      if (start != -1 && end != -1) return trimmed.substring(start, end + 1);
+    String jsonStr = trimmed;
+
+    // Remove markdown code fences
+    if (jsonStr.startsWith('```')) {
+      final start = jsonStr.indexOf('{');
+      final end = jsonStr.lastIndexOf('}');
+      if (start != -1 && end != -1) {
+        jsonStr = jsonStr.substring(start, end + 1);
+      }
+    } else {
+      final start = jsonStr.indexOf('{');
+      final end = jsonStr.lastIndexOf('}');
+      if (start != -1 && end != -1) {
+        jsonStr = jsonStr.substring(start, end + 1);
+      }
     }
-    final start = trimmed.indexOf('{');
-    final end = trimmed.lastIndexOf('}');
-    if (start != -1 && end != -1) return trimmed.substring(start, end + 1);
-    return trimmed;
+
+    // Attempt to fix incomplete JSON by adding missing closing brackets/braces
+    return _fixIncompleteJson(jsonStr);
+  }
+
+  /// Attempts to fix common incomplete JSON issues
+  static String _fixIncompleteJson(String jsonStr) {
+    if (jsonStr.isEmpty) return jsonStr;
+
+    final fixed = StringBuffer();
+    int openBraces = 0;
+    int openBrackets = 0;
+    bool inString = false;
+    bool escaped = false;
+
+    for (int i = 0; i < jsonStr.length; i++) {
+      final char = jsonStr[i];
+      fixed.write(char);
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char == '\\' && inString) {
+        escaped = true;
+        continue;
+      }
+
+      if (char == '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (!inString) {
+        if (char == '{') openBraces++;
+        if (char == '}') openBraces--;
+        if (char == '[') openBrackets++;
+        if (char == ']') openBrackets--;
+      }
+    }
+
+    // Add missing closing brackets and braces
+    while (openBrackets > 0) {
+      fixed.write(']');
+      openBrackets--;
+    }
+    while (openBraces > 0) {
+      fixed.write('}');
+      openBraces--;
+    }
+
+    return fixed.toString();
+  }
+
+  /// Validates that extracted JSON is syntactically complete.
+  static bool _isValidJson(String jsonStr) {
+    if (jsonStr.isEmpty) return false;
+
+    try {
+      jsonDecode(jsonStr);
+      return true;
+    } catch (e) {
+      log('OCR JSON validation failed: $e', tag: 'OcrService');
+      return false;
+    }
   }
 }

@@ -37,6 +37,12 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
   late final GeneratedColumn<String> customerPhone = GeneratedColumn<String>(
       'customer_phone', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _billNumberMeta =
+      const VerificationMeta('billNumber');
+  @override
+  late final GeneratedColumn<String> billNumber = GeneratedColumn<String>(
+      'bill_number', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _invoiceTypeMeta =
       const VerificationMeta('invoiceType');
   @override
@@ -112,6 +118,7 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         supabaseId,
         customerName,
         customerPhone,
+        billNumber,
         invoiceType,
         totalAmount,
         amountPaid,
@@ -152,6 +159,12 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           _customerPhoneMeta,
           customerPhone.isAcceptableOrUnknown(
               data['customer_phone']!, _customerPhoneMeta));
+    }
+    if (data.containsKey('bill_number')) {
+      context.handle(
+          _billNumberMeta,
+          billNumber.isAcceptableOrUnknown(
+              data['bill_number']!, _billNumberMeta));
     }
     if (data.containsKey('invoice_type')) {
       context.handle(
@@ -216,6 +229,8 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           .read(DriftSqlType.string, data['${effectivePrefix}customer_name'])!,
       customerPhone: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}customer_phone']),
+      billNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}bill_number']),
       invoiceType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}invoice_type'])!,
       totalAmount: attachedDatabase.typeMapping
@@ -248,6 +263,7 @@ class Bill extends DataClass implements Insertable<Bill> {
   final String? supabaseId;
   final String customerName;
   final String? customerPhone;
+  final String? billNumber;
   final String invoiceType;
   final double totalAmount;
   final double amountPaid;
@@ -262,6 +278,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       this.supabaseId,
       required this.customerName,
       this.customerPhone,
+      this.billNumber,
       required this.invoiceType,
       required this.totalAmount,
       required this.amountPaid,
@@ -281,6 +298,9 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['customer_name'] = Variable<String>(customerName);
     if (!nullToAbsent || customerPhone != null) {
       map['customer_phone'] = Variable<String>(customerPhone);
+    }
+    if (!nullToAbsent || billNumber != null) {
+      map['bill_number'] = Variable<String>(billNumber);
     }
     map['invoice_type'] = Variable<String>(invoiceType);
     map['total_amount'] = Variable<double>(totalAmount);
@@ -308,6 +328,9 @@ class Bill extends DataClass implements Insertable<Bill> {
       customerPhone: customerPhone == null && nullToAbsent
           ? const Value.absent()
           : Value(customerPhone),
+      billNumber: billNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billNumber),
       invoiceType: Value(invoiceType),
       totalAmount: Value(totalAmount),
       amountPaid: Value(amountPaid),
@@ -332,6 +355,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       supabaseId: serializer.fromJson<String?>(json['supabaseId']),
       customerName: serializer.fromJson<String>(json['customerName']),
       customerPhone: serializer.fromJson<String?>(json['customerPhone']),
+      billNumber: serializer.fromJson<String?>(json['billNumber']),
       invoiceType: serializer.fromJson<String>(json['invoiceType']),
       totalAmount: serializer.fromJson<double>(json['totalAmount']),
       amountPaid: serializer.fromJson<double>(json['amountPaid']),
@@ -351,6 +375,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       'supabaseId': serializer.toJson<String?>(supabaseId),
       'customerName': serializer.toJson<String>(customerName),
       'customerPhone': serializer.toJson<String?>(customerPhone),
+      'billNumber': serializer.toJson<String?>(billNumber),
       'invoiceType': serializer.toJson<String>(invoiceType),
       'totalAmount': serializer.toJson<double>(totalAmount),
       'amountPaid': serializer.toJson<double>(amountPaid),
@@ -368,6 +393,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           Value<String?> supabaseId = const Value.absent(),
           String? customerName,
           Value<String?> customerPhone = const Value.absent(),
+          Value<String?> billNumber = const Value.absent(),
           String? invoiceType,
           double? totalAmount,
           double? amountPaid,
@@ -383,6 +409,7 @@ class Bill extends DataClass implements Insertable<Bill> {
         customerName: customerName ?? this.customerName,
         customerPhone:
             customerPhone.present ? customerPhone.value : this.customerPhone,
+        billNumber: billNumber.present ? billNumber.value : this.billNumber,
         invoiceType: invoiceType ?? this.invoiceType,
         totalAmount: totalAmount ?? this.totalAmount,
         amountPaid: amountPaid ?? this.amountPaid,
@@ -407,6 +434,8 @@ class Bill extends DataClass implements Insertable<Bill> {
       customerPhone: data.customerPhone.present
           ? data.customerPhone.value
           : this.customerPhone,
+      billNumber:
+          data.billNumber.present ? data.billNumber.value : this.billNumber,
       invoiceType:
           data.invoiceType.present ? data.invoiceType.value : this.invoiceType,
       totalAmount:
@@ -433,6 +462,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('supabaseId: $supabaseId, ')
           ..write('customerName: $customerName, ')
           ..write('customerPhone: $customerPhone, ')
+          ..write('billNumber: $billNumber, ')
           ..write('invoiceType: $invoiceType, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('amountPaid: $amountPaid, ')
@@ -452,6 +482,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       supabaseId,
       customerName,
       customerPhone,
+      billNumber,
       invoiceType,
       totalAmount,
       amountPaid,
@@ -469,6 +500,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.supabaseId == this.supabaseId &&
           other.customerName == this.customerName &&
           other.customerPhone == this.customerPhone &&
+          other.billNumber == this.billNumber &&
           other.invoiceType == this.invoiceType &&
           other.totalAmount == this.totalAmount &&
           other.amountPaid == this.amountPaid &&
@@ -485,6 +517,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<String?> supabaseId;
   final Value<String> customerName;
   final Value<String?> customerPhone;
+  final Value<String?> billNumber;
   final Value<String> invoiceType;
   final Value<double> totalAmount;
   final Value<double> amountPaid;
@@ -499,6 +532,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.supabaseId = const Value.absent(),
     this.customerName = const Value.absent(),
     this.customerPhone = const Value.absent(),
+    this.billNumber = const Value.absent(),
     this.invoiceType = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.amountPaid = const Value.absent(),
@@ -514,6 +548,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.supabaseId = const Value.absent(),
     this.customerName = const Value.absent(),
     this.customerPhone = const Value.absent(),
+    this.billNumber = const Value.absent(),
     this.invoiceType = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.amountPaid = const Value.absent(),
@@ -529,6 +564,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<String>? supabaseId,
     Expression<String>? customerName,
     Expression<String>? customerPhone,
+    Expression<String>? billNumber,
     Expression<String>? invoiceType,
     Expression<double>? totalAmount,
     Expression<double>? amountPaid,
@@ -544,6 +580,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (supabaseId != null) 'supabase_id': supabaseId,
       if (customerName != null) 'customer_name': customerName,
       if (customerPhone != null) 'customer_phone': customerPhone,
+      if (billNumber != null) 'bill_number': billNumber,
       if (invoiceType != null) 'invoice_type': invoiceType,
       if (totalAmount != null) 'total_amount': totalAmount,
       if (amountPaid != null) 'amount_paid': amountPaid,
@@ -561,6 +598,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       Value<String?>? supabaseId,
       Value<String>? customerName,
       Value<String?>? customerPhone,
+      Value<String?>? billNumber,
       Value<String>? invoiceType,
       Value<double>? totalAmount,
       Value<double>? amountPaid,
@@ -575,6 +613,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       supabaseId: supabaseId ?? this.supabaseId,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      billNumber: billNumber ?? this.billNumber,
       invoiceType: invoiceType ?? this.invoiceType,
       totalAmount: totalAmount ?? this.totalAmount,
       amountPaid: amountPaid ?? this.amountPaid,
@@ -601,6 +640,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     }
     if (customerPhone.present) {
       map['customer_phone'] = Variable<String>(customerPhone.value);
+    }
+    if (billNumber.present) {
+      map['bill_number'] = Variable<String>(billNumber.value);
     }
     if (invoiceType.present) {
       map['invoice_type'] = Variable<String>(invoiceType.value);
@@ -639,6 +681,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('supabaseId: $supabaseId, ')
           ..write('customerName: $customerName, ')
           ..write('customerPhone: $customerPhone, ')
+          ..write('billNumber: $billNumber, ')
           ..write('invoiceType: $invoiceType, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('amountPaid: $amountPaid, ')
@@ -2918,6 +2961,7 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   Value<String?> supabaseId,
   Value<String> customerName,
   Value<String?> customerPhone,
+  Value<String?> billNumber,
   Value<String> invoiceType,
   Value<double> totalAmount,
   Value<double> amountPaid,
@@ -2933,6 +2977,7 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<String?> supabaseId,
   Value<String> customerName,
   Value<String?> customerPhone,
+  Value<String?> billNumber,
   Value<String> invoiceType,
   Value<double> totalAmount,
   Value<double> amountPaid,
@@ -2965,6 +3010,7 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<String?> supabaseId = const Value.absent(),
             Value<String> customerName = const Value.absent(),
             Value<String?> customerPhone = const Value.absent(),
+            Value<String?> billNumber = const Value.absent(),
             Value<String> invoiceType = const Value.absent(),
             Value<double> totalAmount = const Value.absent(),
             Value<double> amountPaid = const Value.absent(),
@@ -2980,6 +3026,7 @@ class $$BillsTableTableManager extends RootTableManager<
             supabaseId: supabaseId,
             customerName: customerName,
             customerPhone: customerPhone,
+            billNumber: billNumber,
             invoiceType: invoiceType,
             totalAmount: totalAmount,
             amountPaid: amountPaid,
@@ -2995,6 +3042,7 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<String?> supabaseId = const Value.absent(),
             Value<String> customerName = const Value.absent(),
             Value<String?> customerPhone = const Value.absent(),
+            Value<String?> billNumber = const Value.absent(),
             Value<String> invoiceType = const Value.absent(),
             Value<double> totalAmount = const Value.absent(),
             Value<double> amountPaid = const Value.absent(),
@@ -3010,6 +3058,7 @@ class $$BillsTableTableManager extends RootTableManager<
             supabaseId: supabaseId,
             customerName: customerName,
             customerPhone: customerPhone,
+            billNumber: billNumber,
             invoiceType: invoiceType,
             totalAmount: totalAmount,
             amountPaid: amountPaid,
@@ -3043,6 +3092,11 @@ class $$BillsTableFilterComposer
 
   ColumnFilters<String> get customerPhone => $state.composableBuilder(
       column: $state.table.customerPhone,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get billNumber => $state.composableBuilder(
+      column: $state.table.billNumber,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -3125,6 +3179,11 @@ class $$BillsTableOrderingComposer
 
   ColumnOrderings<String> get customerPhone => $state.composableBuilder(
       column: $state.table.customerPhone,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get billNumber => $state.composableBuilder(
+      column: $state.table.billNumber,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 

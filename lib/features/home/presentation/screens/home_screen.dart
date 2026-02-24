@@ -9,15 +9,31 @@ import '../../../billing/presentation/providers/shop_profile_provider.dart';
 import '../../../billing/data/repositories/shop_profile_repository.dart';
 import '../../../customers/presentation/providers/customer_provider.dart';
 
-// ─────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────
-
 const _kGreen = Color(0xFF1B8A2A);
 const _kGreenBg = Color(0xFFE8F5E9);
 const _kRed = Color(0xFFC62828);
 const _kRedBg = Color(0xFFFFEBEE);
 const _kBrandPrimary = Color(0xFF3949AB);
+
+// ─────────────────────────────────────────────────────────────
+// Selection Providers
+// ─────────────────────────────────────────────────────────────
+
+final selectedBillsProvider = StateProvider<Set<int>>((ref) => {});
+
+class SelectionKey {
+  final String? phone;
+  final String name;
+  SelectionKey(this.phone, this.name);
+  @override
+  bool operator ==(Object other) =>
+      other is SelectionKey && other.phone == phone && other.name == name;
+  @override
+  int get hashCode => Object.hash(phone, name);
+  String get identifier => '${phone ?? "none"}_$name';
+}
+
+final selectedPartiesProvider = StateProvider<Set<String>>((ref) => {});
 
 // ─────────────────────────────────────────────────────────────
 // HomeScreen
@@ -37,51 +53,80 @@ class HomeScreen extends ConsumerWidget {
         ) ??
         '';
 
-    final displayName =
-        shopName.isNotEmpty ? shopName : 'My Shop';
+    final displayName = shopName.isNotEmpty ? shopName : 'My Shop';
+
+    final selectedBills = ref.watch(selectedBillsProvider);
+    final selectedParties = ref.watch(selectedPartiesProvider);
+    final bool isSelectingBills = selectedBills.isNotEmpty;
+    final bool isSelectingParties = selectedParties.isNotEmpty;
+    final bool isSelectionMode = isSelectingBills || isSelectingParties;
 
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: GestureDetector(
-          onTap: () => _showRenameDialog(context, ref, displayName),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  displayName,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        leading: isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  ref.read(selectedBillsProvider.notifier).state = {};
+                  ref.read(selectedPartiesProvider.notifier).state = {};
+                },
+              )
+            : null,
+        title: isSelectionMode
+            ? Text(
+                '${isSelectingBills ? selectedBills.length : selectedParties.length} selected',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            : GestureDetector(
+                onTap: () => _showRenameDialog(context, ref, displayName),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        displayName,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.edit_outlined,
-                size: 16,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
-              ),
-            ],
-          ),
-        ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
-            onPressed: () {
-              // TODO: Open notifications
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/shop-profile'),
-          ),
+          if (isSelectionMode)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: _kRed),
+              tooltip: 'Delete Selected',
+              onPressed: () => _confirmDelete(context, ref),
+            )
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              tooltip: 'Notifications',
+              onPressed: () {
+                // TODO: Open notifications
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Settings',
+              onPressed: () => context.push('/shop-profile'),
+            ),
+          ],
         ],
       ),
       body: authState.when(
@@ -190,6 +235,65 @@ class HomeScreen extends ConsumerWidget {
         : ShopProfileData(shopName: trimmed);
     ref.read(shopProfileProvider.notifier).save(updated);
   }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    final selectedBills = ref.read(selectedBillsProvider);
+    final selectedParties = ref.read(selectedPartiesProvider);
+
+    final String title = selectedBills.isNotEmpty
+        ? 'Delete ${selectedBills.length} order(s)?'
+        : 'Delete ${selectedParties.length} party(s)?';
+    final String content = selectedBills.isNotEmpty
+        ? 'This will permanently remove these orders from your history.'
+        : 'This will delete these customers and ALL their associated orders and payments.';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _handleDeletion(ref);
+            },
+            style: FilledButton.styleFrom(backgroundColor: _kRed),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleDeletion(WidgetRef ref) async {
+    final selectedBills = ref.read(selectedBillsProvider);
+    final selectedParties = ref.read(selectedPartiesProvider);
+
+    if (selectedBills.isNotEmpty) {
+      await ref
+          .read(billRepositoryProvider)
+          .deleteBills(selectedBills.toList());
+      ref.read(selectedBillsProvider.notifier).state = {};
+    } else if (selectedParties.isNotEmpty) {
+      final List<({String? phone, String name})> parties =
+          selectedParties.map((id) {
+        // Split back the identifier: phone_name
+        final idx = id.indexOf('_');
+        final phone = id.substring(0, idx);
+        final name = id.substring(idx + 1);
+        return (phone: phone == 'none' ? null : phone, name: name);
+      }).toList();
+
+      await ref.read(customerRepositoryProvider).deleteCustomers(parties);
+      ref.read(selectedPartiesProvider.notifier).state = {};
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -227,7 +331,7 @@ class _QuickLinksBar extends StatelessWidget {
           _QuickLinkItem(
             icon: Icons.edit_document,
             iconColor: _kBrandPrimary,
-            label: 'Manual\nBill',
+            label: 'Manual\nOrder',
             onTap: () => context.push('/manual-bill'),
           ),
           _QuickLinkItem(
@@ -341,8 +445,7 @@ class _QuickLinksBar extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _GallaStat(
-                    label: 'Orders', value: todayCount.toString()),
+                _GallaStat(label: 'Orders', value: todayCount.toString()),
                 _GallaStat(
                     label: 'Total Sales',
                     value: '₹${todayTotal.toStringAsFixed(0)}'),
@@ -507,16 +610,18 @@ class _RecentBillsTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error loading orders: $e')),
       data: (bills) {
-        if (bills.isEmpty) return const _EmptyState(message: 'No orders yet.\nTap "Snap New Order" to get started.');
+        if (bills.isEmpty)
+          return const _EmptyState(
+              message: 'No orders yet.\nTap "Snap New Order" to get started.');
         return RefreshIndicator(
           onRefresh: () async => ref.refresh(recentBillsProvider),
           child: ListView.separated(
-            padding: const EdgeInsets.only(
-                left: 12, right: 12, top: 8, bottom: 80),
+            padding:
+                const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 80),
             itemCount: math.min(bills.length, 20),
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) =>
-                _BillTile(bill: bills[index]),
+                _BillTile(index: index, bill: bills[index]),
           ),
         );
       },
@@ -524,13 +629,19 @@ class _RecentBillsTab extends ConsumerWidget {
   }
 }
 
-class _BillTile extends StatelessWidget {
+class _BillTile extends ConsumerWidget {
+  final int index;
   final dynamic bill;
-  const _BillTile({required this.bill});
+  const _BillTile({required this.index, required this.bill});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final int billId = bill.id as int;
+    final selectedBills = ref.watch(selectedBillsProvider);
+    final isSelected = selectedBills.contains(billId);
+    final bool isSelectionMode = selectedBills.isNotEmpty;
+
     final status = bill.status as String;
     final customerName = bill.customerName as String;
     final total = bill.totalAmount as double;
@@ -543,85 +654,124 @@ class _BillTile extends StatelessWidget {
     final Color statusBg = isPaid ? _kGreenBg : _kRedBg;
     final String statusLabel = isPaid ? 'Paid' : 'Pending';
 
-    final String initial = customerName.isNotEmpty
-        ? customerName[0].toUpperCase()
-        : '?';
+    final String initial =
+        customerName.isNotEmpty ? customerName[0].toUpperCase() : '?';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      leading: CircleAvatar(
-        radius: 20,
-        backgroundColor: _kBrandPrimary.withOpacity(0.08),
-        child: Text(
-          initial,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: _kBrandPrimary,
-            fontSize: 15,
-          ),
-        ),
-      ),
-      title: Text(
-        customerName.isEmpty ? 'Unknown Customer' : customerName,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Row(
-        children: [
-          if (hasImage) ...[
-            Icon(
-              Icons.camera_alt_outlined,
-              size: 12,
-              color: theme.colorScheme.onSurface.withOpacity(0.35),
-            ),
-            const SizedBox(width: 3),
-          ],
-          Text(
-            _formatDate(createdAt),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-          ),
-        ],
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            '₹${total.toStringAsFixed(0)}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSurface,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              statusLabel,
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 0.2,
+    return Container(
+      color: isSelected
+          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+          : null,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: _kBrandPrimary.withOpacity(0.08),
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _kBrandPrimary,
+                  fontSize: 15,
+                ),
               ),
             ),
-          ),
-        ],
+            if (isSelected)
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: const Icon(Icons.check, size: 12, color: Colors.white),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          customerName.isEmpty ? 'Unknown Customer' : customerName,
+          style:
+              theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
+          children: [
+            if (hasImage) ...[
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 12,
+                color: theme.colorScheme.onSurface.withOpacity(0.35),
+              ),
+              const SizedBox(width: 3),
+            ],
+            Text(
+              _formatDate(createdAt),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '₹${total.toStringAsFixed(0)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: theme.colorScheme.onSurface,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                statusLabel,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 10,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        onTap: () {
+          if (isSelectionMode) {
+            _toggleSelection(ref, billId);
+          } else {
+            context.push('/order-detail', extra: bill);
+          }
+        },
+        onLongPress: () {
+          _toggleSelection(ref, billId);
+        },
       ),
-      onTap: () {
-        context.push('/order-detail', extra: bill);
-      },
     );
+  }
+
+  void _toggleSelection(WidgetRef ref, int id) {
+    final current = ref.read(selectedBillsProvider);
+    if (current.contains(id)) {
+      ref.read(selectedBillsProvider.notifier).state =
+          current.where((e) => e != id).toSet();
+    } else {
+      ref.read(selectedBillsProvider.notifier).state = {...current, id};
+      // Clear party selection if any
+      ref.read(selectedPartiesProvider.notifier).state = {};
+    }
   }
 
   String _formatDate(DateTime dt) {
@@ -648,12 +798,14 @@ class _PartySummaryTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (summaries) {
-        if (summaries.isEmpty) return const _EmptyState(message: 'No parties yet.\nAdd an order to see your ledger.');
+        if (summaries.isEmpty)
+          return const _EmptyState(
+              message: 'No parties yet.\nAdd an order to see your ledger.');
         return RefreshIndicator(
           onRefresh: () async => ref.refresh(customerSummariesProvider),
           child: ListView.separated(
-            padding: const EdgeInsets.only(
-                left: 12, right: 12, top: 8, bottom: 80),
+            padding:
+                const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 80),
             itemCount: summaries.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) =>
@@ -665,87 +817,133 @@ class _PartySummaryTab extends ConsumerWidget {
   }
 }
 
-class _PartySummaryTile extends StatelessWidget {
+class _PartySummaryTile extends ConsumerWidget {
   final dynamic summary;
   const _PartySummaryTile({required this.summary});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final String name = summary.displayName;
+    final String? phone = summary.phone;
     final double pending = summary.pendingAmount;
     final int billCount = summary.billCount;
     final bool isSettled = summary.isSettled;
+
+    final partyId = SelectionKey(phone, name).identifier;
+    final selectedParties = ref.watch(selectedPartiesProvider);
+    final isSelected = selectedParties.contains(partyId);
+    final bool isSelectionMode = selectedParties.isNotEmpty;
 
     final Color statusColor = isSettled ? _kGreen : _kRed;
     final Color statusBg = isSettled ? _kGreenBg : _kRedBg;
     final String tagLabel = isSettled ? 'Settled' : 'Udhaar';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      leading: CircleAvatar(
-        radius: 20,
-        backgroundColor: _kBrandPrimary.withOpacity(0.08),
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: _kBrandPrimary,
-            fontSize: 15,
-          ),
-        ),
-      ),
-      title: Text(
-        name.isEmpty ? 'Unknown' : name,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        '$billCount orders',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
-        ),
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            isSettled ? 'All clear' : '₹${pending.toStringAsFixed(0)}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: isSettled
-                  ? theme.colorScheme.onSurface.withOpacity(0.6)
-                  : theme.colorScheme.onSurface,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              tagLabel,
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 0.2,
+    return Container(
+      color: isSelected
+          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+          : null,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: _kBrandPrimary.withOpacity(0.08),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _kBrandPrimary,
+                  fontSize: 15,
+                ),
               ),
             ),
+            if (isSelected)
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: const Icon(Icons.check, size: 12, color: Colors.white),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          name.isEmpty ? 'Unknown' : name,
+          style:
+              theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          '$billCount orders',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withOpacity(0.5),
           ),
-        ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              isSettled ? 'All clear' : '₹${pending.toStringAsFixed(0)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: isSettled
+                    ? theme.colorScheme.onSurface.withOpacity(0.6)
+                    : theme.colorScheme.onSurface,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                tagLabel,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 10,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        onTap: () {
+          if (isSelectionMode) {
+            _toggleSelection(ref, partyId);
+          } else {
+            context.push('/customers');
+          }
+        },
+        onLongPress: () {
+          _toggleSelection(ref, partyId);
+        },
       ),
-      onTap: () {
-        context.push('/customers');
-      },
     );
+  }
+
+  void _toggleSelection(WidgetRef ref, String id) {
+    final current = ref.read(selectedPartiesProvider);
+    if (current.contains(id)) {
+      ref.read(selectedPartiesProvider.notifier).state =
+          current.where((e) => e != id).toSet();
+    } else {
+      ref.read(selectedPartiesProvider.notifier).state = {...current, id};
+      // Clear bill selection if any
+      ref.read(selectedBillsProvider.notifier).state = {};
+    }
   }
 }
 
@@ -767,8 +965,7 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.receipt_long_rounded,
-                size: 48,
-                color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                size: 48, color: theme.colorScheme.onSurface.withOpacity(0.2)),
             const SizedBox(height: 16),
             Text(
               message,

@@ -1,0 +1,423 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Invoice: â¹2,984 from SnapKhata Shop</title>
+  
+  <!-- Open Graph / WhatsApp -->
+  <meta property="og:title" content="Invoice: â¹2,984 from SnapKhata Shop" />
+  <meta property="og:description" content="Order for Shri Deshmukh from SnapKhata Shop. Click to view details." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://yblvrnaexonjpuegemwh.supabase.co/storage/v1/object/public/bill-images/akshaykhanapureit/bill_1771849638964.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-900: #0f172a;
+    }
+    
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--slate-50);
+      color: var(--slate-900);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px 16px 100px;
+    }
+
+    /* Branding Header */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      color: var(--primary);
+    }
+
+    .brand-name {
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Invoice Card */
+    .invoice-card {
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--slate-200);
+      overflow: hidden;
+    }
+
+    .invoice-header {
+      padding: 24px;
+      background: linear-gradient(to bottom right, var(--slate-900), #1e293b);
+      color: white;
+    }
+
+    .shop-info h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .shop-details {
+      font-size: 13px;
+      color: var(--slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .order-meta {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .order-id {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--slate-200);
+    }
+
+    .order-date {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Section Styles */
+    .section {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--slate-600);
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .customer-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .customer-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .customer-phone {
+      font-size: 13px;
+      color: var(--slate-600);
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+
+    .status-paid { background: #d1fae5; color: var(--success); }
+    .status-partial { background: #fef3c7; color: var(--warning); }
+    .status-unpaid { background: #fee2e2; color: var(--danger); }
+
+    /* Items Table */
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-info {
+      flex: 1;
+    }
+
+    .item-name {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .item-qty-rate {
+      font-size: 12px;
+      color: var(--slate-600);
+    }
+
+    .item-amount {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    /* Summary */
+    .summary-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .summary-total {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid var(--slate-100);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .balance-due {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    /* Floating Action Button */
+    .actions {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      width: calc(100% - 32px);
+      max-width: 400px;
+      z-index: 100;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 16px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      transition: transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary { background: var(--slate-900); color: white; }
+    .btn-outline { background: white; color: var(--slate-900); border: 2px solid var(--slate-900); }
+
+    @media print {
+      .actions, .brand-header { display: none !important; }
+      body { background: white; }
+      .container { padding: 0; max-width: 100%; }
+      .invoice-card { box-shadow: none; border: 1px solid #eee; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand-header">
+      <span class="brand-name">SnapKhata</span>
+    </div>
+
+    <div class="invoice-card">
+      <header class="invoice-header">
+        <div class="shop-info">
+          <h1 id="shopName">Store Name</h1>
+          <div class="shop-details" id="shopMeta">Location â¢ Phone</div>
+        </div>
+        <div class="order-meta">
+          <div>
+            <div class="order-id">Invoice #<span id="orderId">0000</span></div>
+          </div>
+          <div class="order-date" id="orderDate">Date</div>
+        </div>
+      </header>
+
+      <section class="section">
+        <div class="section-title">Bill To</div>
+        <div class="customer-box">
+          <div>
+            <div class="customer-name" id="customerName">Customer Name</div>
+            <div class="customer-phone" id="customerPhone">Phone</div>
+          </div>
+          <div id="paymentStatusBadge"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Items</div>
+        <div class="items-list" id="itemsList">
+          <!-- Items injected here -->
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="summary-grid">
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span id="subtotal">â¹0</span>
+          </div>
+          <div class="summary-line" id="discountRow" style="display:none">
+            <span>Discount</span>
+            <span id="discount" style="color:var(--success)">-â¹0</span>
+          </div>
+          <div class="summary-line" id="gstRow" style="display:none">
+            <span id="gstLabel">GST</span>
+            <span id="gst">â¹0</span>
+          </div>
+          <div class="summary-line summary-total">
+            <span>Total Amount</span>
+            <span id="total">â¹0</span>
+          </div>
+          <div class="summary-line" id="paidRow" style="display:none">
+            <span>Amount Paid</span>
+            <span id="paid">â¹0</span>
+          </div>
+          <div class="summary-line balance-due" id="balanceRow">
+            <span>Balance Due</span>
+            <span id="balance">â¹0</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div style="text-align:center; margin-top:24px; color:var(--slate-600); font-size:12px;">
+      Powered by SnapKhata - Digital Records for Smart Business
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-outline" onclick="window.print()">
+      <span>Download PDF</span>
+    </button>
+    <button id="viewImageBtn" class="btn btn-primary" style="display:none">
+      <span>View Photo</span>
+    </button>
+  </div>
+
+  <script>
+    (function hydrate() {
+      const data = {"shop":{"name":"SnapKhata Shop","address":"","phone":""},"customer":{"name":"Shri Deshmukh","phone":"9146514132"},"order":{"id":"6d2fcbc8-0d69-4825-9381-1e239f1814ec","dateISO":"2026-02-23T12:27:21.045347+00:00","subtotal":2984,"discount":0,"gstAmount":0,"gstPercent":0,"total":2984,"paid":2984,"balance":0,"paymentStatus":"paid","imageUrl":"https://yblvrnaexonjpuegemwh.supabase.co/storage/v1/object/public/bill-images/akshaykhanapureit/bill_1771849638964.jpg"},"items":[{"name":"Engine oil","qty":3.5,"unit":null,"rate":420,"amount":1470},{"name":"Oil filter","qty":1,"unit":null,"rate":385,"amount":385},{"name":"Coolant","qty":1,"unit":null,"rate":285,"amount":285},{"name":"Caliper grease","qty":4,"unit":null,"rate":30,"amount":120},{"name":"Cotton waste","qty":1,"unit":null,"rate":10,"amount":10},{"name":"Screen wash","qty":1,"unit":null,"rate":30,"amount":30},{"name":"Battery water","qty":1,"unit":null,"rate":30,"amount":30},{"name":"AC filter","qty":1,"unit":null,"rate":315,"amount":315},{"name":"Air filter","qty":1,"unit":null,"rate":339,"amount":339}]};
+      const fmt = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(v || 0);
+      
+      const byId = (id) => document.getElementById(id);
+      
+      // Shop
+      byId('shopName').textContent = data.shop.name;
+      byId('shopMeta').textContent = [data.shop.address, data.shop.phone].filter(Boolean).join(' â¢ ');
+      
+      // Order
+      byId('orderId').textContent = data.order.id.slice(0, 8);
+      if (data.order.dateISO) {
+        byId('orderDate').textContent = new Date(data.order.dateISO).toLocaleDateString('en-IN', { 
+          day: '2-digit', month: 'short', year: 'numeric' 
+        });
+      }
+      
+      // Customer
+      byId('customerName').textContent = data.customer.name;
+      byId('customerPhone').textContent = data.customer.phone;
+      
+      // Status
+      const status = (data.order.paymentStatus || '').toLowerCase();
+      const badge = byId('paymentStatusBadge');
+      badge.className = 'status-badge';
+      if (status === 'paid') {
+        badge.classList.add('status-paid');
+        badge.textContent = 'PAID';
+      } else if (status === 'partial') {
+        badge.classList.add('status-partial');
+        badge.textContent = 'PARTIAL';
+      } else {
+        badge.classList.add('status-unpaid');
+        badge.textContent = 'UNPAID';
+      }
+
+      // Items
+      const list = byId('itemsList');
+      data.items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-qty-rate">${item.qty} ${item.unit || 'pcs'} Ã ${fmt(item.rate)}</div>
+          </div>
+          <div class="item-amount">${fmt(item.amount)}</div>
+        `;
+        list.appendChild(div);
+      });
+
+      // Summary
+      byId('subtotal').textContent = fmt(data.order.subtotal);
+      if (data.order.discount > 0) {
+        byId('discount').textContent = '-' + fmt(data.order.discount);
+        byId('discountRow').style.display = 'flex';
+      }
+      if (data.order.gstAmount > 0) {
+        byId('gst').textContent = fmt(data.order.gstAmount);
+        byId('gstRow').style.display = 'flex';
+      }
+      byId('total').textContent = fmt(data.order.total);
+      if (data.order.paid > 0) {
+        byId('paid').textContent = fmt(data.order.paid);
+        byId('paidRow').style.display = 'flex';
+      }
+      byId('balance').textContent = fmt(data.order.balance);
+      if (data.order.balance <= 0) byId('balanceRow').style.display = 'none';
+
+      // Photo Button
+      if (data.order.imageUrl) {
+        const btn = byId('viewImageBtn');
+        btn.style.display = 'flex';
+        btn.onclick = () => window.open(data.order.imageUrl, '_blank');
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -293,4 +293,12 @@ class CustomerRepository {
       // Ignore live-sync failures
     }
   }
+
+  /// Deletes multiple customers.
+  Future<void> deleteCustomers(
+      List<({String? phone, String name})> customers) async {
+    for (final c in customers) {
+      await deleteCustomer(c.phone, c.name);
+    }
+  }
 }

@@ -8,6 +8,8 @@ class Bills extends Table {
   TextColumn get customerName => text().withDefault(const Constant(''))();
   TextColumn get customerPhone =>
       text().nullable()(); // for customer ledger grouping
+  TextColumn get billNumber =>
+      text().nullable()(); // extracted manual bill number
   TextColumn get invoiceType => text().withDefault(
       const Constant('order_summary'))(); // 'gst' | 'order_summary'
   RealColumn get totalAmount => real().withDefault(const Constant(0.0))();

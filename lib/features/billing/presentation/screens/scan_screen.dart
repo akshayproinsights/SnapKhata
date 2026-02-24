@@ -68,12 +68,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     setState(() => _isProcessing = true);
     try {
       // Start OCR and a minimum delay for the loading sequence animation
-      final ocrTask = OcrService.extractBill(imageFile);
-      // Increased delay to 6s for a more premium, "earned" feel as we cycle through 6 steps
-      final minDelay = Future.delayed(const Duration(milliseconds: 6000));
-
-      final results = await Future.wait([ocrTask, minDelay]);
-      final ocrResult = results[0];
+      final startTime = DateTime.now();
+      final ocrResult = await OcrService.extractBill(imageFile);
+      
+      // Ensure at least 3s of loading animation for smooth UX
+      final elapsed = DateTime.now().difference(startTime);
+      final minDuration = const Duration(milliseconds: 3000);
+      if (elapsed < minDuration) {
+        await Future.delayed(minDuration - elapsed);
+      }
 
       if (!mounted) return;
       context.push('/bill-review', extra: {
@@ -144,7 +147,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   ),
                   const Spacer(),
                   const Text(
-                    '📄  Scan Filled Bill',
+                    '📄  Scan Filled Order',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
@@ -186,7 +189,7 @@ class _LoadingOverlayState extends State<_LoadingOverlay>
     (title: 'Matching Prices', sub: '💰 Verifying rates & quantities...'),
     (title: 'Calculating Totals', sub: '🧮 Adding up discounts...'),
     (title: 'Checking Payment', sub: '💳 Detecting paid / unpaid status...'),
-    (title: 'Creating Invoice', sub: '✨ Preparing your smart order!'),
+    (title: 'Order Created', sub: '✨ Preparing your smart order!'),
   ];
 
   int _index = 0;
@@ -201,8 +204,7 @@ class _LoadingOverlayState extends State<_LoadingOverlay>
       duration: const Duration(milliseconds: 6000),
     )..forward();
 
-    _stepSub =
-        Stream.periodic(const Duration(milliseconds: 1100)).listen((_) {
+    _stepSub = Stream.periodic(const Duration(milliseconds: 1100)).listen((_) {
       if (mounted) {
         setState(() {
           if (_index < _steps.length - 1) {
@@ -334,8 +336,8 @@ class _LoadingOverlayState extends State<_LoadingOverlay>
                   // Blend step-based progress with time-based for smoothness
                   final timeProgress = _progressController.value;
                   final stepProgress = progress;
-                  final blended = (timeProgress * 0.4 + stepProgress * 0.6)
-                      .clamp(0.0, 1.0);
+                  final blended =
+                      (timeProgress * 0.4 + stepProgress * 0.6).clamp(0.0, 1.0);
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(

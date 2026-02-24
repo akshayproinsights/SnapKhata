@@ -1,5 +1,7 @@
 // lib/core/utils/whatsapp_utils.dart
 
+import 'package:url_launcher/url_launcher.dart';
+
 enum OrderPaymentStatus { fullyPaid, partiallyPaid, unpaid }
 
 class WhatsAppUtils {
@@ -59,7 +61,7 @@ class WhatsAppUtils {
 
       case OrderPaymentStatus.partiallyPaid:
         return 'Hi $customerName,\n'
-            'We have received your advance for *Order #$orderNumber*. The detailed bill is attached.\n'
+            'We have received your advance for *Order #$orderNumber*. The detailed order snapshot is attached.\n'
             '⏳ *Balance Pending: $pendingFmt*';
 
       case OrderPaymentStatus.fullyPaid:
@@ -68,5 +70,38 @@ class WhatsAppUtils {
             '✅ *Amount Paid: $totalFmt*\n'
             'Please find your final receipt attached. Thank you for doing business with us!';
     }
+  }
+
+  /// Normalizes an Indian mobile number to `91XXXXXXXXXX` (digits only).
+  static String normalizeIndianPhone(String phone) {
+    final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.startsWith('91')) return digitsOnly;
+    return '91$digitsOnly';
+  }
+
+  /// Builds a wa.me deep link for the given phone and message.
+  ///
+  /// Example: https://wa.me/91XXXXXXXXXX?text=<url_encoded_message>
+  static Uri buildWaMeUri({
+    required String phone,
+    required String message,
+  }) {
+    final normalized = normalizeIndianPhone(phone);
+    final encodedMessage = Uri.encodeComponent(message);
+    return Uri.parse('https://wa.me/$normalized?text=$encodedMessage');
+  }
+
+  /// Opens WhatsApp using the wa.me deep link in an external application mode.
+  ///
+  /// Returns `true` if the native WhatsApp app (or browser) could be opened.
+  static Future<bool> openWhatsAppChat({
+    required String phone,
+    required String message,
+  }) async {
+    final uri = buildWaMeUri(phone: phone, message: message);
+    if (await canLaunchUrl(uri)) {
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    return false;
   }
 }

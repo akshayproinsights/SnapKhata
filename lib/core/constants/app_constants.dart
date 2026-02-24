@@ -26,7 +26,7 @@ class AppConstants {
   static const String fallbackModel = 'gemini-3.1-pro-preview';
 
   /// If OCR confidence score falls below this percentage, retry with [fallbackModel].
-  static const double accuracyThreshold = 70.0;
+  static const double accuracyThreshold = 0.70;
 
   // ─── Token Pricing (INR per 1M tokens) ───────────────────────
   // Gemini 2.5 Flash pricing (approximate, update as Google publishes rates)
@@ -40,4 +40,11 @@ class AppConstants {
   // ─── Supabase ─────────────────────────────────────────────────
   /// Supabase Storage bucket for bill images.
   static const String billImagesBucket = 'bill-images';
+
+  /// Base URL for customer-facing order pages.
+  ///
+  /// Example: https://my.snapkhata.app/order
+  /// Final share link will look like: `$orderShareBaseUrl/<supabase_id>`.
+  static String get orderShareBaseUrl =>
+      dotenv.env['ORDER_SHARE_BASE_URL'] ?? 'https://snapkhata.app/order';
 }

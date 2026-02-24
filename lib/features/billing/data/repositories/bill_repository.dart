@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/supabase_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/utils/image_utils.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/utils/logger.dart';
 import '../models/scanned_bill.dart';
 import '../models/bill_item.dart' as domain;
@@ -29,6 +31,11 @@ class BillRepository {
         await ImageUtils.compressForUpload(imageFile) ?? imageFile;
 
     // Step 2: Save to local Drift DB first (offline-first)
+    final finalBillNumber = (scannedBill.invoiceId != null &&
+            scannedBill.invoiceId!.trim().isNotEmpty)
+        ? scannedBill.invoiceId!.trim()
+        : await _generateBillNumber();
+
     final billId = await _db.insertBill(BillsCompanion(
       customerName: Value(scannedBill.customerName ?? ''),
       customerPhone: Value(scannedBill.customerPhone),
@@ -39,6 +46,7 @@ class BillRepository {
           Value(scannedBill.amountRemaining ?? scannedBill.totalAmount),
       status:
           Value(scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft'),
+      billNumber: Value(finalBillNumber),
       rawImagePath: Value(compressed.path),
       isSynced: const Value(false),
     ));
@@ -106,6 +114,7 @@ class BillRepository {
                 scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft',
             'image_url': imageUrl,
             'bill_date': scannedBill.date,
+            'bill_number': finalBillNumber,
           })
           .select('id')
           .single();
@@ -162,6 +171,11 @@ class BillRepository {
     required ScannedBill scannedBill,
   }) async {
     // Step 1: Save to local Drift DB (offline-first)
+    final finalBillNumber = (scannedBill.invoiceId != null &&
+            scannedBill.invoiceId!.trim().isNotEmpty)
+        ? scannedBill.invoiceId!.trim()
+        : await _generateBillNumber();
+
     final billId = await _db.insertBill(BillsCompanion(
       customerName: Value(scannedBill.customerName ?? ''),
       customerPhone: Value(scannedBill.customerPhone),
@@ -172,6 +186,7 @@ class BillRepository {
           Value(scannedBill.amountRemaining ?? scannedBill.totalAmount),
       status:
           Value(scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft'),
+      billNumber: Value(finalBillNumber),
       rawImagePath: const Value(null),
       isSynced: const Value(false),
     ));
@@ -221,12 +236,15 @@ class BillRepository {
             'total_amount': scannedBill.totalAmount,
             'subtotal': scannedBill.subtotal,
             'discount': scannedBill.discount,
+            'gst_amount': scannedBill.gstAmount,
+            'gst_percent': scannedBill.gstPercent,
             'amount_paid': scannedBill.amountPaid,
             'amount_remaining': scannedBill.amountRemaining,
             'payment_status': scannedBill.paymentStatus,
             'status':
                 scannedBill.paymentStatus == 'paid' ? 'confirmed' : 'draft',
             'bill_date': scannedBill.date,
+            'bill_number': finalBillNumber,
           })
           .select('id')
           .single();
@@ -262,8 +280,7 @@ class BillRepository {
         supabaseId: Value(supabaseId),
       ));
 
-      log('Manual bill synced to Supabase: $supabaseId',
-          tag: 'BillRepository');
+      log('Manual bill synced to Supabase: $supabaseId', tag: 'BillRepository');
       return (billId: billId, isSynced: true, syncError: null);
     } catch (e) {
       final errMsg = e.toString();
@@ -291,6 +308,24 @@ class BillRepository {
         .toList();
   }
 
+  /// Builds the public web URL for a bill if it has been synced to Supabase.
+  ///
+  /// Returns `null` when the bill is not found locally or has not yet been
+  /// assigned a remote `supabaseId` (i.e., cloud sync is pending/offline).
+  Future<String?> getBillShareUrl(int localBillId) async {
+    final bill = await (_db.select(_db.bills)
+          ..where((t) => t.id.equals(localBillId)))
+        .getSingleOrNull();
+
+    final supabaseId = bill?.supabaseId;
+    if (supabaseId == null || supabaseId.isEmpty) {
+      return null;
+    }
+
+    final baseUrl = AppConstants.orderShareBaseUrl;
+    return '$baseUrl?id=$supabaseId';
+  }
+
   /// Deletes a bill locally and from Supabase (live-sync).
   Future<void> deleteBill(int localId) async {
     // 1. Fetch to get supabaseId
@@ -313,5 +348,28 @@ class BillRepository {
         // Live-sync failure is ignored per plan
       }
     }
+  }
+
+  /// Deletes multiple bills.
+  Future<void> deleteBills(List<int> localIds) async {
+    for (final id in localIds) {
+      await deleteBill(id);
+    }
+  }
+
+  /// Generates a fallback bill number in format: SHOP-DDMMYYYY-HHMM
+  Future<String> _generateBillNumber() async {
+    final shop = await _db.getShopProfile();
+    final shopName = shop?.shopName ?? 'SHOP';
+
+    // Create short name: first 4 chars, uppercase, no spaces
+    final shortName = shopName.replaceAll(' ', '').toUpperCase();
+    final shopPart =
+        shortName.length > 4 ? shortName.substring(0, 4) : shortName;
+
+    final now = DateTime.now();
+    final datePart = DateFormat('ddMMyyyy-HHmm').format(now);
+
+    return '$shopPart-$datePart';
   }
 }

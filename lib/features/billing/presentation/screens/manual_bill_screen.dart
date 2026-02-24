@@ -192,7 +192,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bill saved successfully!'),
+            content: Text('Order saved successfully!'),
             backgroundColor: _kGreen,
             duration: Duration(seconds: 2),
           ),
@@ -244,7 +244,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Sale',
+          'New Order',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             color: Colors.black87,
@@ -390,7 +390,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Invoice No.',
+                Text('Order No.',
                     style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.black45, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
@@ -452,8 +452,8 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
             decoration: InputDecoration(
               labelText: 'Customer *',
               hintText: 'e.g. Akshay',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
@@ -468,8 +468,8 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
               labelText: 'Phone Number',
               hintText: '10-digit mobile',
               counterText: '',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
@@ -501,7 +501,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
               children: [
                 const Icon(Icons.verified, color: Colors.white, size: 16),
                 const SizedBox(width: 6),
-                Text('Billed Items',
+                Text('Ordered Items',
                     style: theme.textTheme.labelLarge?.copyWith(
                         color: Colors.white, fontWeight: FontWeight.w700)),
               ],
@@ -522,8 +522,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
           // Summary row
           if (_items.isNotEmpty)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: _kDivider)),
               ),
@@ -534,8 +533,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: Colors.black45, fontSize: 12)),
                   const Spacer(),
-                  Text(
-                      'Subtotal: ${_totalAmount.toStringAsFixed(2)}',
+                  Text('Subtotal: ${_totalAmount.toStringAsFixed(2)}',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: Colors.black45, fontSize: 12)),
                 ],
@@ -587,7 +585,9 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                   style: theme.textTheme.bodyLarge
                       ?.copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
               const Spacer(),
-              Text('₹', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black45)),
+              Text('₹',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.black45)),
               const SizedBox(width: 8),
               Text(_totalAmount.toStringAsFixed(2),
                   style: theme.textTheme.titleMedium
@@ -610,7 +610,8 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                   onChanged: (v) {
                     setState(() {
                       _receivedChecked = v ?? false;
-                      if (_receivedChecked && _receivedAmountCtrl.text.isEmpty) {
+                      if (_receivedChecked &&
+                          _receivedAmountCtrl.text.isEmpty) {
                         _receivedAmountCtrl.text =
                             _totalAmount.toStringAsFixed(2);
                       }
@@ -624,7 +625,9 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                   style: theme.textTheme.bodyMedium
                       ?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
-              Text('₹', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black45)),
+              Text('₹',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.black45)),
               const SizedBox(width: 8),
               if (_receivedChecked)
                 SizedBox(
@@ -677,8 +680,8 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                       fontWeight: FontWeight.w700)),
               const Spacer(),
               Text('₹',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: _balanceDue > 0 ? _kRed : _kGreen)),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: _balanceDue > 0 ? _kRed : _kGreen)),
               const SizedBox(width: 8),
               Text(
                 _balanceDue.toStringAsFixed(2),
@@ -704,12 +707,11 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
       child: Row(
         children: [
           Text('Payment Type',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: Colors.black54)),
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: Colors.black54)),
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(6),
@@ -738,8 +740,7 @@ class _ManualBillScreenState extends ConsumerState<ManualBillScreen> {
                   const SizedBox(width: 6),
                   Text(_paymentType,
                       style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87)),
+                          fontWeight: FontWeight.w700, color: Colors.black87)),
                   const SizedBox(width: 4),
                   const Icon(Icons.keyboard_arrow_down,
                       size: 16, color: Colors.black45),
@@ -900,8 +901,7 @@ class _ItemRowWidget extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6),
-                        borderSide:
-                            const BorderSide(color: Color(0xFFDDDDDD))),
+                        borderSide: const BorderSide(color: Color(0xFFDDDDDD))),
                   ),
                   onChanged: (_) => onChanged(),
                 ),

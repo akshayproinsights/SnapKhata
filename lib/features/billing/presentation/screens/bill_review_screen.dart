@@ -228,7 +228,7 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('Review Bill'),
+        title: const Text('Review Order'),
         centerTitle: false,
         elevation: 0,
       ),
@@ -308,7 +308,7 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
 
           // Items section
           _SectionCard(
-            title: 'Bill Items',
+            title: 'Order Items',
             subtitle: 'वस्तू यादी',
             icon: Icons.list_alt_rounded,
             trailing: TextButton.icon(
@@ -411,7 +411,7 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: _InvoiceTypePill(
-                        label: '🧾 GST Invoice',
+                        label: '🧾 GST Receipt',
                         selected: _invoiceType == 'gst_invoice',
                         onTap: () =>
                             setState(() => _invoiceType = 'gst_invoice'),
@@ -486,7 +486,7 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.save_outlined),
-                label: Text(isSaving ? 'Saving...' : 'Save Bill'),
+                label: Text(isSaving ? 'Saving...' : 'Save Order'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF0066FF),
                   shape: RoundedRectangleBorder(

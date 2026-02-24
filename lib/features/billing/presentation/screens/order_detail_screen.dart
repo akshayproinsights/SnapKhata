@@ -5,11 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../data/models/bill_item.dart' as domain;
-import '../../data/services/pdf_service.dart';
-import '../../data/services/pdf_share_service.dart';
 import '../providers/bill_provider.dart';
 import '../providers/shop_profile_provider.dart';
-import '../../data/models/scanned_bill.dart';
+import '../../../../core/utils/whatsapp_utils.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Colors
@@ -51,8 +49,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Order',
             style: TextStyle(fontWeight: FontWeight.w800)),
-        content:
-            const Text('Are you sure you want to delete this order? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this order? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -77,46 +75,82 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       setState(() => _isDeleting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e'),
-              backgroundColor: _kRed),
+          SnackBar(
+              content: Text('Failed to delete: $e'), backgroundColor: _kRed),
         );
       }
     }
   }
 
   Future<void> _shareOrder() async {
-    final items = await ref.read(billItemsProvider(widget.bill.id).future);
     final bill = widget.bill;
 
-    final scannedBill = ScannedBill(
-      customerName: bill.customerName,
-      customerPhone: bill.customerPhone,
-      items: items,
-      subtotal: bill.totalAmount,
-      totalAmount: bill.totalAmount,
-      amountPaid: bill.amountPaid,
-      amountRemaining: bill.amountRemaining,
-      paymentStatus: bill.status == 'confirmed' ? 'paid' : 'unpaid',
-    );
-
-    final shop = await ref.read(shopProfileRepositoryProvider).getProfile();
     try {
-      final pdf = await PdfService.generateBillPdf(
-        bill: scannedBill,
-        shop: shop,
-        billId: bill.id,
-        invoiceType: bill.invoiceType,
+      final phone = bill.customerPhone;
+      if (phone == null || phone.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Add customer mobile number to share on WhatsApp.'),
+          ),
+        );
+        return;
+      }
+
+      // Build the public web URL for this order from Supabase ID.
+      final repo = ref.read(billRepositoryProvider);
+      final shareUrl = await repo.getBillShareUrl(bill.id);
+
+      if (!mounted) return;
+
+      if (shareUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Cloud link will be ready once sync completes. Please connect to internet and try again.'),
+            backgroundColor: _kOrange,
+          ),
+        );
+        return;
+      }
+
+      final shop = await ref.read(shopProfileRepositoryProvider).getProfile();
+      final name = bill.customerName.isNotEmpty ? bill.customerName : 'there';
+
+      final status = bill.status == 'confirmed'
+          ? OrderPaymentStatus.fullyPaid
+          : (bill.amountPaid > 0
+              ? OrderPaymentStatus.partiallyPaid
+              : OrderPaymentStatus.unpaid);
+
+      final caption = WhatsAppUtils.getWhatsAppCaption(
+        status: status,
+        customerName: name,
+        businessName: shop?.shopName ?? 'SnapKhata',
+        orderNumber: bill.id.toString(),
+        totalAmount: bill.totalAmount,
+        pendingAmount: bill.amountRemaining,
       );
-      await PdfShareService.shareViaSystem(
-        pdfFile: pdf,
-        invoiceNo: 'Order_${bill.id}',
-        shopName: shop?.shopName,
+
+      final message = '$caption\n\n📋 View full order:\n$shareUrl';
+
+      final opened = await WhatsAppUtils.openWhatsAppChat(
+        phone: phone,
+        message: message,
       );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not open WhatsApp. Please ensure WhatsApp is installed.'),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Share failed: $e'),
-              backgroundColor: _kRed),
+          SnackBar(content: Text('Share failed: $e'), backgroundColor: _kRed),
         );
       }
     }
@@ -143,7 +177,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Sale',
+          'Order Detail',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             color: Colors.black87,
@@ -362,8 +396,8 @@ class _CustomerCard extends StatelessWidget {
                       ?.copyWith(color: Colors.black45)),
               Text(
                 '₹ ${(bill.amountRemaining ?? 0).toStringAsFixed(2)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: _kBlue, fontWeight: FontWeight.w700),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: _kBlue, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -380,8 +414,8 @@ class _CustomerCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Customer Name',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.black45, fontSize: 11)),
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: Colors.black45, fontSize: 11)),
                 const SizedBox(height: 2),
                 Text(name,
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -389,13 +423,11 @@ class _CustomerCard extends StatelessWidget {
               ],
             ),
           ),
-          if (bill.customerPhone != null &&
-              bill.customerPhone!.isNotEmpty) ...[
+          if (bill.customerPhone != null && bill.customerPhone!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFDDDDDD)),
                 borderRadius: BorderRadius.circular(8),
@@ -404,13 +436,12 @@ class _CustomerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Phone Number',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.black45, fontSize: 11)),
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: Colors.black45, fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(bill.customerPhone!,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87)),
+                          fontWeight: FontWeight.w600, color: Colors.black87)),
                 ],
               ),
             ),
@@ -606,7 +637,8 @@ class _TotalsCard extends StatelessWidget {
               (i) => Expanded(
                 child: Container(
                   height: 1,
-                  color: i.isEven ? const Color(0xFFCCCCCC) : Colors.transparent,
+                  color:
+                      i.isEven ? const Color(0xFFCCCCCC) : Colors.transparent,
                 ),
               ),
             ),
@@ -661,8 +693,8 @@ class _TotalsCard extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
               const Spacer(),
               Text('₹',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: balanceDue > 0 ? _kRed : _kGreen)),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: balanceDue > 0 ? _kRed : _kGreen)),
               const SizedBox(width: 8),
               Text(
                 balanceDue.toStringAsFixed(2),

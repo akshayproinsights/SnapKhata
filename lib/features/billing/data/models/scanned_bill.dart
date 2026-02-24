@@ -5,6 +5,7 @@ import 'bill_item.dart';
 class ScannedBill {
   final String? customerName;
   final String? customerPhone;
+  final String? invoiceId; // Extracted bill/invoice number
   final String? date; // YYYY-MM-DD
   final List<BillItem> items;
   final double subtotal;
@@ -19,6 +20,7 @@ class ScannedBill {
   const ScannedBill({
     this.customerName,
     this.customerPhone,
+    this.invoiceId,
     this.date,
     required this.items,
     required this.subtotal,
@@ -34,6 +36,7 @@ class ScannedBill {
   ScannedBill copyWith({
     String? customerName,
     String? customerPhone,
+    String? invoiceId,
     String? date,
     List<BillItem>? items,
     double? subtotal,
@@ -48,6 +51,7 @@ class ScannedBill {
     return ScannedBill(
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      invoiceId: invoiceId ?? this.invoiceId,
       date: date ?? this.date,
       items: items ?? this.items,
       subtotal: subtotal ?? this.subtotal,
@@ -73,6 +77,7 @@ class ScannedBill {
     return ScannedBill(
       customerName: json['customer_name'] as String?,
       customerPhone: json['customer_phone'] as String?,
+      invoiceId: json['invoice_id'] as String?,
       date: json['date'] as String?,
       items: items,
       subtotal: _toDouble(json['subtotal']) ?? 0.0,
