@@ -97,7 +97,7 @@ class ShopProfileRepository {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      await _supabase.from('shop_profiles').upsert({
+      final data = {
         'user_id': user.id,
         'shop_name': profile.shopName,
         'shop_address': profile.shopAddress,
@@ -105,7 +105,22 @@ class ShopProfileRepository {
         'shop_gst_number': profile.shopGstNumber,
         'shop_email': profile.shopEmail,
         'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id');
+      };
+
+      final existing = await _supabase
+          .from('shop_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (existing != null) {
+        await _supabase
+            .from('shop_profiles')
+            .update(data)
+            .eq('user_id', user.id);
+      } else {
+        await _supabase.from('shop_profiles').insert(data);
+      }
 
       log('Shop profile synced to Supabase', tag: 'ShopProfileRepo');
     } catch (e) {

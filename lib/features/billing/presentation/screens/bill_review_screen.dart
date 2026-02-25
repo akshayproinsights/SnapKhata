@@ -376,6 +376,8 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
                       controller: _gstPercentCtrl,
                       icon: Icons.percent_rounded,
                       keyboardType: TextInputType.number,
+                      readOnly: true,
+                      onTap: _showGstBottomSheet,
                       onChanged: (_) => _recalculate(),
                     ),
                   ),
@@ -574,6 +576,87 @@ class _BillReviewScreenState extends ConsumerState<BillReviewScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showGstBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final taxes = [
+          {'name': 'No Tax', 'val': 0.0},
+          {'name': 'GST@0.25%', 'val': 0.25},
+          {'name': 'IGST@0.25%', 'val': 0.25},
+          {'name': 'GST@3%', 'val': 3.0},
+          {'name': 'IGST@3%', 'val': 3.0},
+          {'name': 'GST@5%', 'val': 5.0},
+          {'name': 'IGST@5%', 'val': 5.0},
+          {'name': 'GST@12%', 'val': 12.0},
+          {'name': 'IGST@12%', 'val': 12.0},
+          {'name': 'GST@18%', 'val': 18.0},
+          {'name': 'IGST@18%', 'val': 18.0},
+          {'name': 'GST@28%', 'val': 28.0},
+          {'name': 'IGST@28%', 'val': 28.0},
+          {'name': 'GST@40%', 'val': 40.0},
+          {'name': 'IGST@40%', 'val': 40.0},
+        ];
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Tax %',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: taxes.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tax = taxes[index];
+                    return ListTile(
+                      title: Text(tax['name'] as String),
+                      trailing: Text('${tax['val']} %',
+                          style: const TextStyle(color: Colors.grey)),
+                      onTap: () {
+                        setState(() {
+                          _gstPercentCtrl.text =
+                              (tax['val'] as double).toString();
+                          if ((tax['val'] as double) > 0) {
+                            _invoiceType = 'gst_invoice';
+                          } else {
+                            _invoiceType = 'order_summary';
+                          }
+                        });
+                        _recalculate();
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1022,6 +1105,8 @@ class _LabeledField extends StatelessWidget {
   final IconData icon;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   const _LabeledField({
     required this.label,
@@ -1030,6 +1115,8 @@ class _LabeledField extends StatelessWidget {
     required this.icon,
     this.keyboardType,
     this.onChanged,
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -1038,6 +1125,8 @@ class _LabeledField extends StatelessWidget {
       controller: controller,
       onChanged: onChanged,
       keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

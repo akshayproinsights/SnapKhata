@@ -958,6 +958,16 @@ class _CashInSheetState extends ConsumerState<_CashInSheet> {
 
   String? _selectedPhone;
   bool _isSaving = false;
+  List<CustomerSummary> _suggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _partyNameController.addListener(_updateSuggestions);
+    _partyFocusNode.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -965,6 +975,60 @@ class _CashInSheetState extends ConsumerState<_CashInSheet> {
     _partyNameController.dispose();
     _partyFocusNode.dispose();
     super.dispose();
+  }
+
+  void _updateSuggestions() {
+    if (!mounted) return;
+    final summariesAsync = ref.read(customerSummariesProvider);
+    if (!summariesAsync.hasValue) return;
+
+    final query = _partyNameController.text.trim().toLowerCase();
+
+    if (query.isEmpty) {
+      if (_suggestions.isNotEmpty) {
+        setState(() => _suggestions = []);
+      }
+      return;
+    }
+
+    // Reset selected phone as user types new things
+    _selectedPhone = null;
+
+    final summaries = summariesAsync.value!;
+    final matches = summaries
+        .where((s) => s.displayName.toLowerCase().contains(query))
+        .toList();
+
+    final exactMatch = matches.any((s) => s.displayName.toLowerCase() == query);
+    if (!exactMatch && query.isNotEmpty) {
+      matches.add(CustomerSummary(
+        displayName: query, // Special indicator
+        phone: null,
+        totalBilled: 0,
+        totalPaid: 0,
+        pendingAmount: -1, // Use -1 as a flag for "new"
+        lastActivity: DateTime.now(),
+        billCount: 0,
+      ));
+    }
+
+    setState(() {
+      _suggestions = matches;
+    });
+  }
+
+  void _selectSuggestion(CustomerSummary option) {
+    if (option.pendingAmount == -1) {
+      _partyNameController.text = option.displayName;
+      _selectedPhone = null;
+    } else {
+      _partyNameController.text = option.displayName;
+      _selectedPhone = option.phone;
+    }
+    setState(() {
+      _suggestions = [];
+    });
+    _partyFocusNode.unfocus();
   }
 
   Future<void> _save() async {
@@ -992,14 +1056,12 @@ class _CashInSheetState extends ConsumerState<_CashInSheet> {
       return;
     }
 
-    // Determine correct phone/name for saving
     final summariesAsync = ref.read(customerSummariesProvider);
     String? finalPhone = _selectedPhone;
     String finalName = name;
 
     if (summariesAsync.hasValue) {
       final summaries = summariesAsync.value!;
-      // Case-insensitive exact match
       final exactMatch = summaries
           .where((s) => s.displayName.toLowerCase() == name.toLowerCase())
           .firstOrNull;
@@ -1007,7 +1069,6 @@ class _CashInSheetState extends ConsumerState<_CashInSheet> {
         finalPhone = exactMatch.phone;
         finalName = exactMatch.displayName;
       } else {
-        // Unrecognized name, treat as new customer (null phone)
         finalPhone = null;
         finalName = name;
       }
@@ -1050,276 +1111,311 @@ class _CashInSheetState extends ConsumerState<_CashInSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final summariesAsync = ref.watch(customerSummariesProvider);
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-    return Padding(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      // Premium bottom sheet feel: tall enough to fit suggestions, grows with keyboard
+      constraints: BoxConstraints(
+        minHeight: screenHeight * 0.75,
+        maxHeight: screenHeight * 0.92,
+      ),
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 12,
+        bottom: bottomPadding + 24,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Quick Cash In',
-                style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-            const SizedBox(height: 20),
-
-            // Amount Field
-            TextField(
-              controller: _amountController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-              decoration: InputDecoration(
-                labelText: 'Amount received',
-                prefixText: '₹ ',
-                prefixStyle:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        BorderSide(color: theme.colorScheme.primary, width: 2)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 48,
+              height: 5,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
               ),
-              autofocus: true,
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 24),
 
-            // Party Name Autocomplete Field
-            LayoutBuilder(
-              builder: (context, constraints) =>
-                  RawAutocomplete<CustomerSummary>(
-                textEditingController: _partyNameController,
-                focusNode: _partyFocusNode,
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  final query = textEditingValue.text.trim().toLowerCase();
-                  if (query.isEmpty)
-                    return const Iterable<CustomerSummary>.empty();
-                  if (!summariesAsync.hasValue)
-                    return const Iterable<CustomerSummary>.empty();
-
-                  final summaries = summariesAsync.value!;
-                  final matches = summaries
-                      .where((s) => s.displayName.toLowerCase().contains(query))
-                      .toList();
-
-                  // exact match flag?
-                  final exactMatch =
-                      matches.any((s) => s.displayName.toLowerCase() == query);
-                  if (!exactMatch && query.isNotEmpty) {
-                    matches.add(CustomerSummary(
-                      displayName: query, // Special indicator
-                      phone: null,
-                      totalBilled: 0,
-                      totalPaid: 0,
-                      pendingAmount: -1, // Use -1 as a flag for "new"
-                      lastActivity: DateTime.now(),
-                      billCount: 0,
-                    ));
-                  }
-
-                  return matches;
-                },
-                onSelected: (CustomerSummary selection) {
-                  if (selection.pendingAmount == -1) {
-                    // It's the "Add New" option
-                    _partyNameController.text = selection.displayName;
-                    _selectedPhone = null;
-                  } else {
-                    _partyNameController.text = selection.displayName;
-                    _selectedPhone = selection.phone;
-                  }
-                  _partyFocusNode.unfocus();
-                },
-                displayStringForOption: (option) => option.displayName,
-                fieldViewBuilder:
-                    (context, textController, focusNode, onFieldSubmitted) {
-                  return TextField(
-                    controller: textController,
-                    focusNode: focusNode,
-                    onSubmitted: (_) => onFieldSubmitted(),
-                    decoration: InputDecoration(
-                      labelText: 'Party Name',
-                      hintText: 'Search or add new customer...',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      filled: true,
-                      fillColor:
-                          theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                              color: theme.colorScheme.primary, width: 2)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 16),
-                      suffixIcon: textController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 20),
-                              onPressed: () {
-                                textController.clear();
-                                setState(() => _selectedPhone = null);
-                              },
-                            )
-                          : null,
+          // Header Badge
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B8A2A).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.download_rounded,
+                      size: 18, color: Color(0xFF1B8A2A)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Quick Cash In',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF1B8A2A),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
                     ),
-                    onChanged: (val) {
-                      setState(() => _selectedPhone = null);
-                    },
-                  );
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(16),
-                      color: theme.colorScheme.surface,
-                      surfaceTintColor: theme.colorScheme.surfaceTint,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Amount Field
+                  Text(
+                    'Amount Received',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    autofocus: true,
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1,
+                      color: Color(0xFF1B8A2A),
+                      height: 1.2,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '₹ 0',
+                      hintStyle: TextStyle(
+                        color: const Color(0xFF1B8A2A).withOpacity(0.3),
+                      ),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isCollapsed: true,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Party Name Input
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _partyFocusNode.hasFocus
+                            ? theme.colorScheme.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _partyNameController,
+                      focusNode: _partyFocusNode,
+                      textCapitalization: TextCapitalization.words,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        hintText: 'Who is paying?',
+                        hintStyle: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: _partyFocusNode.hasFocus
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                        suffixIcon: _partyNameController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 20),
+                                onPressed: () {
+                                  _partyNameController.clear();
+                                  setState(() => _selectedPhone = null);
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                      ),
+                    ),
+                  ),
+
+                  // Inline Suggestions
+                  if (_suggestions.isNotEmpty && _partyFocusNode.hasFocus) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       clipBehavior: Clip.antiAlias,
-                      child: Container(
-                        width: constraints.maxWidth,
-                        constraints: const BoxConstraints(maxHeight: 280),
-                        child: ListView.separated(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: options.length,
-                          separatorBuilder: (_, __) => const Divider(
-                              height: 1, indent: 16, endIndent: 16),
-                          itemBuilder: (context, index) {
-                            final option = options.elementAt(index);
-                            final isNew = option.pendingAmount == -1;
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: _suggestions.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 64, endIndent: 16),
+                        itemBuilder: (context, index) {
+                          final option = _suggestions[index];
+                          final isNew = option.pendingAmount == -1;
 
-                            if (isNew) {
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor:
-                                      theme.colorScheme.primaryContainer,
-                                  child: Icon(Icons.person_add_alt_1,
-                                      size: 18,
-                                      color: theme.colorScheme.primary),
-                                ),
-                                title: RichText(
-                                  text: TextSpan(
-                                    style: theme.textTheme.bodyMedium,
-                                    children: [
-                                      TextSpan(
-                                        text: 'New customer: ',
-                                        style: TextStyle(
-                                            color: theme.colorScheme.onSurface
-                                                .withOpacity(0.6)),
-                                      ),
-                                      TextSpan(
-                                        text: option.displayName,
-                                        style: TextStyle(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.w700),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                onTap: () => onSelected(option),
-                              );
-                            }
-
-                            final initial = option.displayName.isNotEmpty
-                                ? option.displayName[0].toUpperCase()
-                                : '?';
-
+                          if (isNew) {
                             return ListTile(
-                              leading: CircleAvatar(
-                                radius: 18,
-                                backgroundColor:
-                                    const Color(0xFF3949AB).withOpacity(0.1),
-                                child: Text(
-                                  initial,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF3949AB),
-                                    fontSize: 14,
+                              leading: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.person_add_rounded,
+                                    size: 18, color: theme.colorScheme.primary),
+                              ),
+                              title: Row(
+                                children: [
+                                  Text(
+                                    'Add ',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.6),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              title: Text(
-                                option.displayName,
-                                style: theme.textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: option.phone != null
-                                  ? Text(option.phone!,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacity(0.5)))
-                                  : null,
-                              trailing: Text(
-                                option.pendingAmount > 0
-                                    ? 'Pend: ₹${option.pendingAmount.toStringAsFixed(0)}'
-                                    : '',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFFC62828),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                  Expanded(
+                                    child: Text(
+                                      option.displayName,
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
-                              onTap: () => onSelected(option),
+                              onTap: () => _selectSuggestion(option),
                             );
-                          },
-                        ),
+                          }
+
+                          final initial = option.displayName.isNotEmpty
+                              ? option.displayName[0].toUpperCase()
+                              : '?';
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              radius: 20,
+                              backgroundColor:
+                                  const Color(0xFF3949AB).withOpacity(0.1),
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF3949AB),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              option.displayName,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: option.phone != null
+                                ? Text(option.phone!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.5),
+                                    ))
+                                : null,
+                            trailing: Text(
+                              option.pendingAmount > 0
+                                  ? 'Pend: ₹${option.pendingAmount.toStringAsFixed(0)}'
+                                  : '',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFFC62828),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            onTap: () => _selectSuggestion(option),
+                          );
+                        },
                       ),
                     ),
-                  );
-                },
+                  ],
+                ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton.icon(
-                onPressed: _isSaving ? null : _save,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_rounded, size: 22),
-                label: Text(
-                  _isSaving ? 'Processing...' : 'Save Cash In',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      letterSpacing: 0.3),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B8A2A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
+          // Fixed Save Button at the Bottom
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 56, // Slightly taller for premium feel
+            child: FilledButton.icon(
+              onPressed: _isSaving ? null : _save,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: Colors.white))
+                  : const Icon(Icons.check_circle_rounded, size: 24),
+              label: Text(
+                _isSaving ? 'Processing...' : 'Save Cash In',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    letterSpacing: 0.5),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF1B8A2A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

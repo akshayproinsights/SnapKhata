@@ -84,7 +84,7 @@ class BillRepository {
       try {
         final profile = await _db.getShopProfile();
         if (profile != null) {
-          await _supabase.from('shop_profiles').upsert({
+          final data = {
             'user_id': userId,
             'shop_name': profile.shopName,
             'shop_address': profile.shopAddress,
@@ -92,7 +92,22 @@ class BillRepository {
             'shop_gst_number': profile.shopGstNumber,
             'shop_email': profile.shopEmail,
             'updated_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'user_id');
+          };
+
+          final existing = await _supabase
+              .from('shop_profiles')
+              .select('id')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          if (existing != null) {
+            await _supabase
+                .from('shop_profiles')
+                .update(data)
+                .eq('user_id', userId);
+          } else {
+            await _supabase.from('shop_profiles').insert(data);
+          }
         }
       } catch (e) {
         log('Auto-sync shop profile failed: $e', tag: 'BillRepository');
@@ -248,7 +263,7 @@ class BillRepository {
       try {
         final profile = await _db.getShopProfile();
         if (profile != null) {
-          await _supabase.from('shop_profiles').upsert({
+          final data = {
             'user_id': userId,
             'shop_name': profile.shopName,
             'shop_address': profile.shopAddress,
@@ -256,7 +271,22 @@ class BillRepository {
             'shop_gst_number': profile.shopGstNumber,
             'shop_email': profile.shopEmail,
             'updated_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'user_id');
+          };
+
+          final existing = await _supabase
+              .from('shop_profiles')
+              .select('id')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          if (existing != null) {
+            await _supabase
+                .from('shop_profiles')
+                .update(data)
+                .eq('user_id', userId);
+          } else {
+            await _supabase.from('shop_profiles').insert(data);
+          }
         }
       } catch (e) {
         log('Auto-sync shop profile failed: $e', tag: 'BillRepository');

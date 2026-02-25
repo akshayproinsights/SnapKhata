@@ -79,7 +79,8 @@ serve(async (req) => {
         total: bill.total_amount,
         paid: bill.amount_paid || 0,
         balance: bill.amount_remaining || bill.total_amount,
-        paymentStatus: bill.payment_status || "draft"
+        paymentStatus: bill.payment_status || "draft",
+        invoiceType: bill.invoice_type || "order_summary"
       },
       customer: {
         name: bill.customer_name || "Walk-in customer",

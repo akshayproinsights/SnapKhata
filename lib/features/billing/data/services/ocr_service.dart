@@ -111,9 +111,9 @@ class OcrService {
       final XFile? result = await FlutterImageCompress.compressAndGetFile(
         filePath,
         outPath,
-        quality: 50,
-        minWidth: 800,
-        minHeight: 800,
+        quality: 40,
+        minWidth: 640,
+        minHeight: 640,
       );
 
       if (result == null) {
@@ -146,13 +146,13 @@ Return valid JSON representing this bill. Capture EVERY item.
   "customer_phone": "10 digits or null",
   "invoice_id": "string or null",
   "date": "YYYY-MM-DD or null",
-  "items": [{"name": "English (original if non-English)", "quantity": number, "unit": "kg/pcs/ltr", "unit_price": number, "total_price": number}],
+  "items": [{"name": "English (original if non-English)", "quantity": number, "unit_price": number, "total_price": number}],
   "subtotal": number, "discount": number, "gst_amount": number, "gst_percent": number,
   "total_amount": number, "amount_paid": number, "amount_remaining": number,
   "payment_status": "paid|partial|unpaid",
-  "confidence_score": number (0.0 to 1.0)
+  "confidence_score": number (0.0 to 1.0, default to 0.95 if mostly readable)
 }
-Rules: Keep English as is. Translate non-English to English & append original in brackets. Derive unit/prices if missing.
+Rules: Keep English as is. Translate non-English to English & append original in brackets. Derive prices if missing.
 ''';
 
   /// Extract bill data from a filled customer bill image.

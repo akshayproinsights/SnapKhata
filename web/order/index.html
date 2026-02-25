@@ -705,6 +705,12 @@
                 byId('customerPhone').textContent = '+91 ' + customer.phone.replace('+91', '').trim();
             }
 
+            // Dynamic Title Update
+            const isGstInvoice = Number(order.gstPercent) > 0 || Number(order.gstAmount) > 0 || order.invoiceType === 'gst_invoice';
+            const pageTitleLabel = isGstInvoice ? 'Tax Invoice' : 'Order Summary';
+            document.title = `${pageTitleLabel} • SnapKhata`;
+            document.querySelector('.page-title').textContent = pageTitleLabel;
+
             // --- Items ---
             const items = Array.isArray(data.items) ? data.items : [];
             const tbody = byId('itemsBody');
