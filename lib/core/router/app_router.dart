@@ -86,7 +86,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.customers,
-        builder: (context, state) => const CustomersScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final showPendingOnly = extra?['showPendingOnly'] == true;
+          return CustomersScreen(showPendingOnly: showPendingOnly);
+        },
       ),
       GoRoute(
         path: AppRoutes.orderDetail,

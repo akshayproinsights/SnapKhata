@@ -8,6 +8,7 @@ import '../../../billing/presentation/providers/bill_provider.dart';
 import '../../../billing/presentation/providers/shop_profile_provider.dart';
 import '../../../billing/data/repositories/shop_profile_repository.dart';
 import '../../../customers/presentation/providers/customer_provider.dart';
+import '../../../customers/data/models/customer_summary.dart';
 
 const _kGreen = Color(0xFF1B8A2A);
 const _kGreenBg = Color(0xFFE8F5E9);
@@ -338,7 +339,8 @@ class _QuickLinksBar extends StatelessWidget {
             icon: Icons.hourglass_bottom_rounded,
             iconColor: _kRed,
             label: 'Pending\nUdhaar',
-            onTap: () => context.push('/customers'),
+            onTap: () =>
+                context.push('/customers', extra: {'showPendingOnly': true}),
           ),
           _QuickLinkItem(
             icon: Icons.bar_chart_rounded,
@@ -352,60 +354,13 @@ class _QuickLinksBar extends StatelessWidget {
   }
 
   void _showCashInSheet(BuildContext context) {
-    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 24,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Record Cash In',
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              TextField(
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Amount (₹)',
-                  prefixText: '₹ ',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Party Name (optional)',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.check_rounded),
-                  label: const Text('Save'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (sheetContext) => const _CashInSheet(),
     );
   }
 
@@ -924,7 +879,10 @@ class _PartySummaryTile extends ConsumerWidget {
           if (isSelectionMode) {
             _toggleSelection(ref, partyId);
           } else {
-            context.push('/customers');
+            context.push('/customer-detail', extra: {
+              'phone': phone,
+              'displayName': name,
+            });
           }
         },
         onLongPress: () {
@@ -973,6 +931,391 @@ class _EmptyState extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.45),
                 height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Cash In Sheet (Autocomplete)
+// ─────────────────────────────────────────────────────────────
+
+class _CashInSheet extends ConsumerStatefulWidget {
+  const _CashInSheet();
+
+  @override
+  ConsumerState<_CashInSheet> createState() => _CashInSheetState();
+}
+
+class _CashInSheetState extends ConsumerState<_CashInSheet> {
+  final _amountController = TextEditingController();
+  final _partyNameController = TextEditingController();
+  final _partyFocusNode = FocusNode();
+
+  String? _selectedPhone;
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _partyNameController.dispose();
+    _partyFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final amountText = _amountController.text.trim();
+    if (amountText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an amount')),
+      );
+      return;
+    }
+
+    final amount = double.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    final name = _partyNameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter or select a party name')),
+      );
+      return;
+    }
+
+    // Determine correct phone/name for saving
+    final summariesAsync = ref.read(customerSummariesProvider);
+    String? finalPhone = _selectedPhone;
+    String finalName = name;
+
+    if (summariesAsync.hasValue) {
+      final summaries = summariesAsync.value!;
+      // Case-insensitive exact match
+      final exactMatch = summaries
+          .where((s) => s.displayName.toLowerCase() == name.toLowerCase())
+          .firstOrNull;
+      if (exactMatch != null) {
+        finalPhone = exactMatch.phone;
+        finalName = exactMatch.displayName;
+      } else {
+        // Unrecognized name, treat as new customer (null phone)
+        finalPhone = null;
+        finalName = name;
+      }
+    }
+
+    setState(() => _isSaving = true);
+
+    await ref.read(addPaymentProvider.notifier).addPayment(
+          phone: finalPhone,
+          customerName: finalName,
+          amount: amount,
+          note: 'Cash In',
+        );
+
+    if (!mounted) return;
+
+    final paymentState = ref.read(addPaymentProvider);
+    if (paymentState.success) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('₹${amount.toStringAsFixed(0)} received from $finalName'),
+          backgroundColor: const Color(0xFF1B8A2A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (paymentState.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${paymentState.error}'),
+          backgroundColor: const Color(0xFFC62828),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final summariesAsync = ref.watch(customerSummariesProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Quick Cash In',
+                style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            const SizedBox(height: 20),
+
+            // Amount Field
+            TextField(
+              controller: _amountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                labelText: 'Amount received',
+                prefixText: '₹ ',
+                prefixStyle:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide:
+                        BorderSide(color: theme.colorScheme.primary, width: 2)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+
+            // Party Name Autocomplete Field
+            LayoutBuilder(
+              builder: (context, constraints) =>
+                  RawAutocomplete<CustomerSummary>(
+                textEditingController: _partyNameController,
+                focusNode: _partyFocusNode,
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  final query = textEditingValue.text.trim().toLowerCase();
+                  if (query.isEmpty)
+                    return const Iterable<CustomerSummary>.empty();
+                  if (!summariesAsync.hasValue)
+                    return const Iterable<CustomerSummary>.empty();
+
+                  final summaries = summariesAsync.value!;
+                  final matches = summaries
+                      .where((s) => s.displayName.toLowerCase().contains(query))
+                      .toList();
+
+                  // exact match flag?
+                  final exactMatch =
+                      matches.any((s) => s.displayName.toLowerCase() == query);
+                  if (!exactMatch && query.isNotEmpty) {
+                    matches.add(CustomerSummary(
+                      displayName: query, // Special indicator
+                      phone: null,
+                      totalBilled: 0,
+                      totalPaid: 0,
+                      pendingAmount: -1, // Use -1 as a flag for "new"
+                      lastActivity: DateTime.now(),
+                      billCount: 0,
+                    ));
+                  }
+
+                  return matches;
+                },
+                onSelected: (CustomerSummary selection) {
+                  if (selection.pendingAmount == -1) {
+                    // It's the "Add New" option
+                    _partyNameController.text = selection.displayName;
+                    _selectedPhone = null;
+                  } else {
+                    _partyNameController.text = selection.displayName;
+                    _selectedPhone = selection.phone;
+                  }
+                  _partyFocusNode.unfocus();
+                },
+                displayStringForOption: (option) => option.displayName,
+                fieldViewBuilder:
+                    (context, textController, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    onSubmitted: (_) => onFieldSubmitted(),
+                    decoration: InputDecoration(
+                      labelText: 'Party Name',
+                      hintText: 'Search or add new customer...',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      filled: true,
+                      fillColor:
+                          theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                              color: theme.colorScheme.primary, width: 2)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 16),
+                      suffixIcon: textController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                textController.clear();
+                                setState(() => _selectedPhone = null);
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (val) {
+                      setState(() => _selectedPhone = null);
+                    },
+                  );
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(16),
+                      color: theme.colorScheme.surface,
+                      surfaceTintColor: theme.colorScheme.surfaceTint,
+                      clipBehavior: Clip.antiAlias,
+                      child: Container(
+                        width: constraints.maxWidth,
+                        constraints: const BoxConstraints(maxHeight: 280),
+                        child: ListView.separated(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          separatorBuilder: (_, __) => const Divider(
+                              height: 1, indent: 16, endIndent: 16),
+                          itemBuilder: (context, index) {
+                            final option = options.elementAt(index);
+                            final isNew = option.pendingAmount == -1;
+
+                            if (isNew) {
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor:
+                                      theme.colorScheme.primaryContainer,
+                                  child: Icon(Icons.person_add_alt_1,
+                                      size: 18,
+                                      color: theme.colorScheme.primary),
+                                ),
+                                title: RichText(
+                                  text: TextSpan(
+                                    style: theme.textTheme.bodyMedium,
+                                    children: [
+                                      TextSpan(
+                                        text: 'New customer: ',
+                                        style: TextStyle(
+                                            color: theme.colorScheme.onSurface
+                                                .withOpacity(0.6)),
+                                      ),
+                                      TextSpan(
+                                        text: option.displayName,
+                                        style: TextStyle(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                onTap: () => onSelected(option),
+                              );
+                            }
+
+                            final initial = option.displayName.isNotEmpty
+                                ? option.displayName[0].toUpperCase()
+                                : '?';
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundColor:
+                                    const Color(0xFF3949AB).withOpacity(0.1),
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF3949AB),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                option.displayName,
+                                style: theme.textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: option.phone != null
+                                  ? Text(option.phone!,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withOpacity(0.5)))
+                                  : null,
+                              trailing: Text(
+                                option.pendingAmount > 0
+                                    ? 'Pend: ₹${option.pendingAmount.toStringAsFixed(0)}'
+                                    : '',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFC62828),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              onTap: () => onSelected(option),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: _isSaving ? null : _save,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_rounded, size: 22),
+                label: Text(
+                  _isSaving ? 'Processing...' : 'Save Cash In',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: 0.3),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B8A2A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
               ),
             ),
           ],

@@ -20,7 +20,8 @@ const _kBlueBg = Color(0xFFE6F0FF);
 enum _Filter { all, pending, settled, overpaid }
 
 class CustomersScreen extends ConsumerStatefulWidget {
-  const CustomersScreen({super.key});
+  final bool showPendingOnly;
+  const CustomersScreen({super.key, this.showPendingOnly = false});
 
   @override
   ConsumerState<CustomersScreen> createState() => _CustomersScreenState();
@@ -28,9 +29,15 @@ class CustomersScreen extends ConsumerStatefulWidget {
 
 class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   String _search = '';
-  _Filter _filter = _Filter.all;
+  late _Filter _filter;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = widget.showPendingOnly ? _Filter.pending : _Filter.all;
+  }
 
   @override
   void dispose() {
@@ -539,8 +546,7 @@ class _FilterChip extends StatelessWidget {
             if (count != null) ...[
               const SizedBox(width: 6),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.25)
@@ -638,8 +644,7 @@ class _CustomerCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
                 // ── Avatar ──

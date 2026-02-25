@@ -26,7 +26,7 @@ class AppConstants {
   static const String fallbackModel = 'gemini-3.1-pro-preview';
 
   /// If OCR confidence score falls below this percentage, retry with [fallbackModel].
-  static const double accuracyThreshold = 0.70;
+  static const double accuracyThreshold = 0.55;
 
   // ─── Token Pricing (INR per 1M tokens) ───────────────────────
   // Gemini 2.5 Flash pricing (approximate, update as Google publishes rates)

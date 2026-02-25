@@ -52,29 +52,13 @@ class OcrResult<T> {
 // Equivalent to types.GenerateContentConfig(system_instruction=...) in Python.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _systemInstruction = '''
-You are BillBot, an expert AI assistant specialized in reading Indian shop bills,
-invoices, and receipts for small and medium businesses (SMBs) across India.
-You understand English, Hindi (Devanagari script), and Marathi fluently.
+const _systemInstruction =
+    '''You are BillBot, an AI expert extracting data from Indian SMB bills.
 
-Language rule:
-- ALL output field values must be in English.
-- If the original text is in English, do NOT add any translations or brackets. Keep it as English only.
-- ONLY If a name, item, or label is in Hindi or Marathi (Devanagari script), translate it to English
-  AND append the original text in parentheses for the shopkeeper's reference.
-  Example (English original): "Refined Oil"
-  Example (Marathi/Hindi original): "Wheat Flour (गव्हाचे पीठ)", "Ramesh (रमेश)"
-
-Date rule:
-- Indian bills always use dd-mm-yyyy, dd-mm-yy, or dd/mm/yy format.
-- Always parse dates in that order (day first, then month, then year).
-- Convert to YYYY-MM-DD for the "date" output field.
-  Example: "20/02/26" → "2026-02-20", "5-3-2025" → "2025-03-05"
-
-Your sole job is to extract structured data from raw OCR text (from Indian shop bills) and return it as
-valid JSON — nothing else. Never include markdown, explanations, or commentary
-in your response. Always return raw, parseable JSON only.
-''';
+Rules:
+- Language: All output values must be strictly in English. If the original text is Hindi or Marathi, output as: English Translation (Original Text). Example: Wheat Flour (गव्हाचे पीठ). If original is English, output as-is without brackets.
+- Dates: Assume input dates are DD-MM-YY or DD-MM-YYYY. Convert and output strictly as YYYY-MM-DD. Example: 20/02/26 becomes 2026-02-20.
+- Output: Return ONLY raw, valid JSON. Do not include markdown formatting, json tags, or explanations. 100% accuracy required.''';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OcrService
@@ -127,9 +111,9 @@ class OcrService {
       final XFile? result = await FlutterImageCompress.compressAndGetFile(
         filePath,
         outPath,
-        quality: 60,
-        minWidth: 1000,
-        minHeight: 1000,
+        quality: 50,
+        minWidth: 800,
+        minHeight: 800,
       );
 
       if (result == null) {
@@ -156,24 +140,19 @@ class OcrService {
   // ─────────────────────────────────────────────────────────────
 
   static const _billPrompt = '''
-Extract ALL data from this Indian shop bill/invoice. CRITICAL: Scan entire image including bottom edges. Capture EVERY item without omissions.
-
-Return ONLY valid JSON:
+Return valid JSON representing this bill. Capture EVERY item.
 {
-  "customer_name": "English name; include original in brackets ONLY if non-English e.g. 'Ramesh (रमेश)'",
-  "customer_phone": "10 digits only, strip +91/spaces",
-  "invoice_id": "string or null — extracted Bill number/Invoice ID",
-  "date": "YYYY-MM-DD (parse dd-mm-yyyy day-first)",
-  "items": [{"name": "English name (original in brackets ONLY if non-English)", "quantity": number, "unit": "kg/pcs/ltr/etc", "unit_price": number, "total_price": number}],
+  "customer_name": "English name (original in brackets if non-English)",
+  "customer_phone": "10 digits or null",
+  "invoice_id": "string or null",
+  "date": "YYYY-MM-DD or null",
+  "items": [{"name": "English (original if non-English)", "quantity": number, "unit": "kg/pcs/ltr", "unit_price": number, "total_price": number}],
   "subtotal": number, "discount": number, "gst_amount": number, "gst_percent": number,
   "total_amount": number, "amount_paid": number, "amount_remaining": number,
   "payment_status": "paid|partial|unpaid",
-  "confidence_score": number
+  "confidence_score": number (0.0 to 1.0)
 }
-
-Terms: Invoice No (Inv No/Bill No/Bill #/भरणा क्र./बीजक क्र.), Customer (ग्राहक/नाव/Party/M/s), Date (तारीख/Dt), Qty (नग/पीस/Pcs/Nos), Unit (किलो/ग्राम/Kg/Ltr/Dozen/Bundle), Rate (दर/भाव/Price/MRP), Total (एकूण/कुल/Grand Total/Amt), Subtotal (उप-एकूण/Gross), Discount (सवलत/छूट/Disc), Tax (जीएसटी/GST/CGST/SGST), Paid (जमा/Received/Advance), Balance (बाकी/शिल्लक/Due/Credit), Phone (मोबाईल/Mob/Ph/Contact).
-
-Rules: Keep English as is. Translate non-English to English and append original in brackets. Dates day-first. null for missing. Numbers not strings. Derive unit_price if missing. Sum subtotal if missing. 100% accuracy.
+Rules: Keep English as is. Translate non-English to English & append original in brackets. Derive unit/prices if missing.
 ''';
 
   /// Extract bill data from a filled customer bill image.
@@ -298,26 +277,15 @@ Rules: Keep English as is. Translate non-English to English and append original 
   // ─────────────────────────────────────────────────────────────
 
   static const _templatePrompt = '''
-Analyze the provided image of a blank/empty Indian shop receipt, invoice pad, or letterhead.
-Extract ONLY the pre-printed shop/business details (not any customer-filled rows).
-Return ONLY valid JSON (no markdown, no explanation):
-
+Extract pre-printed shop details from this empty Indian receipt/pad. IGNORE customer-filled rows. Return ONLY valid JSON:
 {
-  "shop_name": "English name; original in brackets if non-English e.g. 'Ganesh Stores (गणेश स्टोर्स)'",
-  "shop_address": "string or null — translate to English, keep original in brackets",
-  "shop_phone": "string or null — may be multiple numbers, separate with comma",
-  "shop_gst_number": "string or null — format: 2 digits + 10-char PAN + 1Z + 2 chars",
+  "shop_name": "English name (original in brackets if non-English)",
+  "shop_address": "string or null (translate, keep original in brackets)",
+  "shop_phone": "string or null (comma separated if multiple)",
+  "shop_gst_number": "string or null",
   "shop_email": "string or null",
-  "confidence_score": number (0–100)
+  "confidence_score": number (0.0 to 1.0)
 }
-
-Notes:
-  - The image may be in English, Hindi (Devanagari), Marathi, or a mixed script.
-  - Translate all extracted text to English; append original in parentheses if non-English.
-  - Dates, quantities, and customer-filled rows must be IGNORED — shop header only.
-  - GST label variants: GSTIN, GST No., GST Number, जीएसटी क्र.
-  - Phone label variants: Ph., Mob., Mobile, दूरध्वनी, संपर्क
-  - confidence_score: 100 = every detail perfectly readable, 0 = completely unreadable.
 ''';
 
   static Future<OcrResult<ShopTemplate>> extractShopTemplate(
